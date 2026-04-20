@@ -1,0 +1,68 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# dataLGBT
+
+O **dataLGBT** é um pacote para o R que reúne funções para processamento, vinculação (linkage) e geração de relatórios a partir de dados de mortalidade de pessoas LGBT no Brasil.
+
+O pacote foi desenvolvido com o objetivo de fornecer autonomia a técnicos de dados em saúde na produção de análises epidemiológicas em diferentes níveis administrativos, utilizando dados públicos do DATASUS.
+
+## Instalação
+
+```r
+# install.packages("remotes")
+remotes::install_github("nnasc/dataLGBT")
+```
+
+## Utilização
+
+A utilização do pacote consiste, em geral, em três etapas:
+
+1. Preparação dos dados provenientes de diferentes sistemas (ex: SIM e SINAN)  
+2. Vinculação dos bancos de dados (linkage)  
+3. Geração de indicadores e relatórios  
+
+## Exemplo
+
+```r
+library(dataLGBT)
+
+# dados_linkados <- data_link(df_sinan, df_sim)
+```
+
+## Aplicação
+
+O pacote foi desenvolvido para análises relacionadas à mortalidade de pessoas LGBT, podendo ser utilizado em:
+
+- Vigilância epidemiológica  
+- Pesquisa em saúde pública  
+- Monitoramento de indicadores de violência  
+
+## Fonte de dados
+
+O pacote foi projetado para trabalhar com dados públicos do DATASUS, sendo diretamente os sistemas:
+
+- Sistema de Informação sobre Mortalidade (SIM)  
+- Sistema de Informação de Agravos de Notificação (SINAN)  
+
+## Como citar
+
+Caso utilize este pacote, recomenda-se citar:
+
+OLIVEIRA, Natan Nascimento de. dataLGBT: Ferramentas para análise de mortalidade de pessoas LGBT no Brasil. [R package].
+
+## Dúvidas e sugestões
+
+Para reportar problemas ou sugerir melhorias, utilize a aba *Issues* no repositório do GitHub.
