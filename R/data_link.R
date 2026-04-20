@@ -214,7 +214,7 @@ data_link <- function(df_sinan,
   )
 
   # Remover duplicados
-  df_sinan <- sinan_matches %>%
+  df_sinan_d <- sinan_matches %>%
     dplyr::distinct(dedupe.ids, .keep_all = TRUE)
 
   # Deduplicação SIM (fastLink) ------------
