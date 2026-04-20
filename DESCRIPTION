@@ -1,5 +1,5 @@
 Package: dataLGBT
-Title: Brazilian Sexual and Gender Minorities Death Reporting Tool
+Title: Ferramentas para análise de mortalidade de pessoas LGBT no Brasil
 Version: 0.0.0.9000
 Authors@R: 
     person("Natan", "Nascimento de Oliveira", , "nat_oliveira98@hotmail.com", 
