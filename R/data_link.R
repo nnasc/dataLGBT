@@ -179,28 +179,10 @@ data_link <- function(df_sinan,
 
   # Deduplicação SINAN (fastLink) ------------
 
-  # Padronizar variáveis para linkage
-  sinan_link <- df_sinan %>%
-    rename("NOME" = "NM_PACIENT", "NOMEMAE" = "NM_MAE_PAC") %>%
-    mutate(NOME = rm_accent(NOME),
-           NOME = str_remove_all(NOME, fixed(".")),
-           NOME = str_remove_all(NOME, fixed("-")),
-           NOME = str_replace_all(NOME, " +", ""),
-           NOME = toupper(NOME),
-           NOMEMAE = rm_accent(NOMEMAE),
-           NOMEMAE = toupper(NOMEMAE),
-           NOMEMAE = str_remove_all(NOMEMAE, fixed(".")),
-           NOMEMAE = str_remove_all(NOMEMAE, fixed("-")),
-           NOMEMAE = str_replace_all(NOMEMAE, " +", ""),
-           DT_NASC = str_remove_all(DT_NASC, "-"),
-           DTNASC = paste0(str_sub(DT_NASC, 7, 8),
-                           str_sub(DT_NASC, 5, 6),
-                           str_sub(DT_NASC, 1, 4)))
-
   # Rodar fastLink (self-linkage)
   sinan_dedup <- fastLink::fastLink(
-    dfA = sinan_link,
-    dfB = sinan_link,
+    dfA = df_sinan,
+    dfB = df_sinan,
     varnames = c("NOME","DTNASC","NOMEMAE"),
     return.all = TRUE,
     verbose = FALSE
@@ -222,28 +204,10 @@ data_link <- function(df_sinan,
   if (isTRUE(dedup_sim)) {
 
     # Padronizar variáveis para linkage
-    sim_link <- df_sim %>%
-      mutate(NOME = rm_accent(NOME),
-             NOME = toupper(NOME),
-             NOME = str_remove_all(NOME, fixed(".")),
-             NOME = str_remove_all(NOME, fixed("-")),
-             NOME = str_replace_all(NOME, " +", ""),
-             NOMEMAE = rm_accent(NOMEMAE),
-             NOMEMAE = toupper(NOMEMAE),
-             NOMEMAE = str_remove_all(NOMEMAE, fixed(".")),
-             NOMEMAE = str_remove_all(NOMEMAE, fixed("-")),
-             NOMEMAE = str_replace_all(NOMEMAE, " +", ""),
-             DT_OBITO = as.Date(paste0(str_sub(DTOBITO, 5, 8),
-                                       "-", str_sub(DTOBITO, 3, 4),
-                                       "-", str_sub(DTOBITO, 1, 2))),
-             DT_NASC = as.Date(paste0(str_sub(DTNASC, 5, 8),
-                                      str_sub(DTNASC, 3, 4),
-                                      str_sub(DTNASC, 1, 2))),
-             DTNASC = as.character(DTNASC))
 
     sim_dedup <- fastLink::fastLink(
-      dfA = sim_link,
-      dfB = sim_link,
+      dfA = df_sim,
+      dfB = df_sim,
       varnames = c("NOME","DTNASC","NOMEMAE"),
       return.all = TRUE,
       verbose = TRUE
