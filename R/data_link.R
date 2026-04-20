@@ -274,7 +274,7 @@ data_link <- function(df_sinan,
     threshold.match = threshold
   ) %>%
     dplyr::group_by(NOME, DTNASC, NOMEMAE) %>%
-    dplyr::slice_max(score, n = 1, with_ties = FALSE) %>%
+    dplyr::slice_max(posterior, n = 1, with_ties = FALSE) %>%
     dplyr::ungroup()
 
 
