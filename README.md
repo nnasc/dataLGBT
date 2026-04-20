@@ -3,6 +3,8 @@
 
 # dataLGBT
 
+![Logo do pacote
+dataLGBT](https://raw.githubusercontent.com/nnasc/dataLGBT/master/images/dataLGBT_logo.png)
 O **dataLGBT** é um pacote para o R que reúne funções para
 processamento, vinculação (linkage) e geração de relatórios a partir de
 dados de mortalidade de pessoas LGBT no Brasil.
@@ -26,6 +28,15 @@ A utilização do pacote consiste, em geral, em três etapas:
     SINAN)  
 2.  Vinculação dos bancos de dados (linkage)  
 3.  Geração de indicadores e relatórios
+
+A imagem abaixo apresenta um resumo das funções do pacote:
+
+<figure>
+<img
+src="https://raw.githubusercontent.com/nnasc/dataLGBT/master/images/dataLGBT_functions.png"
+alt="Funções do pacote dataLGBT" />
+<figcaption aria-hidden="true">Funções do pacote dataLGBT</figcaption>
+</figure>
 
 ## Exemplo
 
