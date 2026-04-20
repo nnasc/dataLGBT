@@ -237,8 +237,8 @@ data_link <- function(df_sinan,
                                        "-", str_sub(DTOBITO, 3, 4),
                                        "-", str_sub(DTOBITO, 1, 2))),
              DT_NASC = as.Date(paste0(str_sub(DTNASC, 5, 8),
-                                      "-", str_sub(DTNASC, 3, 4),
-                                      "-", str_sub(DTNASC, 1, 2))),
+                                      str_sub(DTNASC, 3, 4),
+                                      str_sub(DTNASC, 1, 2))),
              DTNASC = as.character(DTNASC))
 
     sim_dedup <- fastLink::fastLink(
@@ -246,7 +246,7 @@ data_link <- function(df_sinan,
       dfB = sim_link,
       varnames = c("NOME","DTNASC","NOMEMAE"),
       return.all = TRUE,
-      verbose = FALSE
+      verbose = TRUE
     )
 
     sim_matches <- fastLink::getMatches(
@@ -264,7 +264,7 @@ data_link <- function(df_sinan,
     dfB = df_sim,
     varnames = c("NOME","DTNASC","NOMEMAE"),
     return.all = TRUE,
-    verbose = FALSE
+    verbose = TRUE
   )
 
   data_matches <- fastLink::getMatches(
