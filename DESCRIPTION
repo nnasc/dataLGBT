@@ -8,6 +8,10 @@ Description: O pacote dataLGBT foi desenvolvido como uma compilação de funçõ
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
+Imports:
+    dplyr,
+    purrr,
+    fastLink
 RoxygenNote: 7.3.3
 URL: https://github.com/nnasc/dataLGBT
 BugReports: https://github.com/nnasc/dataLGBT/issues
