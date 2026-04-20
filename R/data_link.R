@@ -179,6 +179,11 @@ data_link <- function(df_sinan,
 
   # Deduplicação SINAN (fastLink) ------------
 
+  df_sinan <- df_sinan %>%
+    rename("NOME" = "NM_PACIENT",
+           "NOMEMAE" = "NM_MAE_PAC",
+           "DTNASC" = "DT_NASC")
+
   # Rodar fastLink (self-linkage)
   sinan_dedup <- fastLink::fastLink(
     dfA = df_sinan,
