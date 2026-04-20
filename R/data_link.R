@@ -260,7 +260,7 @@ data_link <- function(df_sinan,
   }
 
   data_linkage <- fastLink::fastLink(
-    dfA = df_sinan,
+    dfA = df_sinan_d,
     dfB = df_sim,
     varnames = c("NOME","DTNASC","NOMEMAE"),
     return.all = TRUE,
@@ -268,7 +268,7 @@ data_link <- function(df_sinan,
   )
 
   data_matches <- fastLink::getMatches(
-    df_sinan,
+    df_sinan_d,
     df_sim,
     data_linkage,
     threshold.match = threshold
