@@ -195,8 +195,8 @@ data_link <- function(df_sinan,
 
   # Obter matches
   sinan_matches <- fastLink::getMatches(
-    sinan_link,
-    sinan_link,
+    df_sinan,
+    df_sinan,
     sinan_dedup
   )
 
@@ -219,8 +219,8 @@ data_link <- function(df_sinan,
     )
 
     sim_matches <- fastLink::getMatches(
-      sim_link,
-      sim_link,
+      df_sim,
+      df_sim,
       sim_dedup
     )
 
