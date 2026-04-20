@@ -99,7 +99,7 @@ data_link <- function(df_sinan,
   }
 
   req_cols_sinan <- c("NM_PACIENT","DT_NASC","NM_MAE_PAC",
-                      "ORIENT_SEX","IDENT_GEN","CS_SEX")
+                      "ORIENT_SEX","IDENT_GEN","CS_SEXO")
 
   df_sinan <- validate_and_prepare_df(
     df_sinan,
