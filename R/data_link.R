@@ -272,10 +272,7 @@ data_link <- function(df_sinan,
     df_sim,
     data_linkage,
     threshold.match = threshold
-  ) %>%
-    dplyr::group_by(NOME, DTNASC, NOMEMAE) %>%
-    dplyr::slice_max(posterior, n = 1, with_ties = FALSE) %>%
-    dplyr::ungroup()
+  )
 
 
   # Auditoria do Linkage --------------
