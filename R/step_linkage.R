@@ -85,7 +85,8 @@ step_linkage <- function(threshold = 0.35,
       stringdist.match = c(".name_std", ".mother_name_std"),
       partial.match = c(".name_std", ".mother_name_std"),
       threshold.match = threshold,
-      verbose = TRUE
+      verbose = TRUE,
+      return.all = TRUE
     )
 
     # -------------------------
