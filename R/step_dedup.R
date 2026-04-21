@@ -11,27 +11,25 @@ step_dedup <- function(dedup_sim = FALSE,
     sim   <- data$sim_raw
 
     # -------------------------
-    # 1. Validar variáveis padronizadas
+    # 1. Validate standardized variables
     # -------------------------
     required_std <- c(".name_std", ".mother_name_std", ".birth_date_std")
 
     if (!all(required_std %in% names(sinan))) {
-      stop("SINAN não foi padronizado. Execute `step_standardize()` antes.")
+      stop("SINAN was not standardized. Run `step_standardize()` first.")
     }
 
     if (!all(required_std %in% names(sim))) {
-      stop("SIM não foi padronizado. Execute `step_standardize()` antes.")
+      stop("SIM was not standardized. Run `step_standardize()` first.")
     }
 
     # -------------------------
-    # 2. Helper: deduplicação probabilística
+    # 2. Helper: probabilistic dedup
     # -------------------------
-    dedup_fastlink <- function(df, dataset_name) {
+    dedup_fastlink <- function(df) {
 
-      # Criar ID interno
-      df$.id_internal <- seq_len(nrow(df))
+      df$.row_id <- seq_len(nrow(df))
 
-      # fastLink requer dois datasets → usamos o mesmo (dedup)
       fl <- fastLink::fastLink(
         dfA = df,
         dfB = df,
@@ -39,10 +37,10 @@ step_dedup <- function(dedup_sim = FALSE,
         stringdist.match = c(".name_std", ".mother_name_std"),
         partial.match = c(".name_std", ".mother_name_std"),
         numeric.match = NULL,
-        threshold.match = threshold
+        threshold.match = threshold,
+        verbose = TRUE
       )
 
-      # Obter pares
       pairs <- fastLink::getMatches(
         fl,
         dfA = df,
@@ -50,52 +48,103 @@ step_dedup <- function(dedup_sim = FALSE,
         threshold = threshold
       )
 
-      if (nrow(pairs) == 0) {
-        df$.id_internal <- NULL
+      # Default audit info
+      step_info <- list(
+        threshold = threshold,
+        n_input = nrow(df),
+        n_output = nrow(df),
+        n_clusters = 0L,
+        n_rows_collapsed = 0L,
+        posterior_max = NA_real_,
+        posterior_min = NA_real_,
+        posterior_mean = NA_real_
+      )
+
+      if (is.null(pairs) || nrow(pairs) == 0) {
+        attr(df, "step_info") <- step_info
+        df$.row_id <- NULL
         return(df)
       }
 
-      # Remover auto-match (i == j)
-      pairs <- pairs[pairs$id1 != pairs$id2, ]
+      if (!"dedupe.ids" %in% names(pairs)) {
+        stop("fastLink did not return `dedupe.ids` in the dedup output.")
+      }
 
-      if (nrow(pairs) == 0) {
-        df$.id_internal <- NULL
+      out <- as.data.frame(pairs)
+
+      clustered <- out[!is.na(out$dedupe.ids), , drop = FALSE]
+
+      if (nrow(clustered) == 0) {
+        attr(df, "step_info") <- step_info
+        df$.row_id <- NULL
         return(df)
       }
 
-      # -------------------------
-      # 3. Criar clusters simples
-      # -------------------------
+      # Posterior audit
+      if ("posterior" %in% names(clustered)) {
+        step_info$posterior_max  <- suppressWarnings(max(clustered$posterior, na.rm = TRUE))
+        step_info$posterior_min  <- suppressWarnings(min(clustered$posterior, na.rm = TRUE))
+        step_info$posterior_mean <- suppressWarnings(mean(clustered$posterior, na.rm = TRUE))
 
-      # Estratégia simples: manter menor id em cada grupo
-      remove_ids <- unique(pairs$id2)
+        clustered <- clustered[order(-clustered$posterior), , drop = FALSE]
+      }
 
-      df <- df[!df$.id_internal %in% remove_ids, ]
+      # One representative per cluster
+      clustered <- clustered[!duplicated(clustered$dedupe.ids), , drop = FALSE]
 
-      df$.id_internal <- NULL
+      # Count clusters and collapsed rows
+      step_info$n_clusters <- length(unique(clustered$dedupe.ids))
+      step_info$n_rows_collapsed <- sum(duplicated(out$dedupe.ids) & !is.na(out$dedupe.ids))
 
-      return(df)
+      # Keep selected representatives from the original data
+      keep_ids <- unique(clustered$.row_id)
+      keep_ids <- keep_ids[!is.na(keep_ids)]
+
+      df_out <- df[df$.row_id %in% keep_ids, , drop = FALSE]
+      df_out$.row_id <- NULL
+
+      step_info$n_output <- nrow(df_out)
+
+      attr(df_out, "step_info") <- step_info
+      return(df_out)
     }
 
     # -------------------------
-    # 4. Deduplicar SINAN (obrigatório)
+    # 3. Deduplicate SINAN (mandatory)
     # -------------------------
-    sinan_dedup <- dedup_fastlink(sinan, "sinan")
+    sinan_dedup <- dedup_fastlink(sinan)
 
     # -------------------------
-    # 5. Deduplicar SIM (opcional)
+    # 4. Deduplicate SIM (optional)
     # -------------------------
     if (dedup_sim) {
-      sim_dedup <- dedup_fastlink(sim, "sim")
+      sim_dedup <- dedup_fastlink(sim)
     } else {
       sim_dedup <- sim
+      attr(sim_dedup, "step_info") <- list(
+        threshold = threshold,
+        n_input = nrow(sim),
+        n_output = nrow(sim),
+        n_clusters = 0L,
+        n_rows_collapsed = 0L,
+        posterior_max = NA_real_,
+        posterior_min = NA_real_,
+        posterior_mean = NA_real_,
+        skipped = TRUE
+      )
     }
 
     # -------------------------
-    # 6. Atualizar estrutura
+    # 5. Update pipe data
     # -------------------------
     data$sinan_raw <- sinan_dedup
     data$sim_raw   <- sim_dedup
+
+    # Attach combined step info for pipe_add_step() to log
+    attr(data, "step_info") <- list(
+      dedup_sinan = attr(sinan_dedup, "step_info"),
+      dedup_sim   = attr(sim_dedup, "step_info")
+    )
 
     return(data)
   }
