@@ -1,34 +1,34 @@
 data_link_validate <- function(x,
                                role = c("sinan", "sim"),
                                required_cols = NULL) {
-  
+
   # -------------------------
   # Definir papel do objeto
   # -------------------------
   role <- match.arg(role)
-  
+
   # -------------------------
   # Colunas obrigatórias padrão por base
   # -------------------------
   default_required_cols <- list(
-    sinan = c("NM_PACIENT", "DT_NASC", "NM_MAE_PAC", "ORIENT_SEX", "IDENT_GEN", "CS_SEX"),
+    sinan = c("NM_PACIENT", "DT_NASC", "NM_MAE_PAC", "ORIENT_SEX", "IDENT_GEN", "CS_SEXO"),
     sim   = c("NOME", "DTNASC", "NOMEMAE", "CAUSABAS")
   )
-  
+
   # -------------------------
   # Usar colunas padrão se o usuário não informar
   # -------------------------
   if (is.null(required_cols)) {
     required_cols <- default_required_cols[[role]]
   }
-  
+
   # -------------------------
   # Validar required_cols
   # -------------------------
   if (!is.character(required_cols) || length(required_cols) == 0) {
     stop("`required_cols` deve ser um vetor de caracteres não vazio.")
   }
-  
+
   # -------------------------
   # Normalizar entrada: aceitar 1 data.frame ou lista de data.frames
   # -------------------------
@@ -42,21 +42,21 @@ data_link_validate <- function(x,
       )
     )
   }
-  
+
   # -------------------------
   # Lista vazia não é permitida
   # -------------------------
   if (length(x) == 0) {
     stop(paste0("A base ", role, " não pode ser uma lista vazia."))
   }
-  
+
   # -------------------------
   # Validar cada elemento da lista
   # -------------------------
   for (i in seq_along(x)) {
-    
+
     df <- x[[i]]
-    
+
     # Cada elemento precisa ser data.frame
     if (!is.data.frame(df)) {
       stop(
@@ -66,7 +66,7 @@ data_link_validate <- function(x,
         )
       )
     }
-    
+
     # Nomes de colunas não podem ser NULL
     if (is.null(names(df)) || any(names(df) == "")) {
       stop(
@@ -75,7 +75,7 @@ data_link_validate <- function(x,
         )
       )
     }
-    
+
     # Colunas duplicadas não são permitidas
     if (any(duplicated(names(df)))) {
       stop(
@@ -84,10 +84,10 @@ data_link_validate <- function(x,
         )
       )
     }
-    
+
     # Verificar colunas obrigatórias
     missing_cols <- setdiff(required_cols, names(df))
-    
+
     if (length(missing_cols) > 0) {
       stop(
         paste0(
@@ -97,7 +97,7 @@ data_link_validate <- function(x,
       )
     }
   }
-  
+
   # -------------------------
   # Criar objeto validado com classe própria
   # -------------------------
