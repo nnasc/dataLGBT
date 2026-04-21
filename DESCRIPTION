@@ -12,7 +12,8 @@ Imports:
     dplyr,
     fastLink,
     stringi,
-    magrittr
+    magrittr,
+    purrr
 Suggests:
     knitr,
     rmarkdown
