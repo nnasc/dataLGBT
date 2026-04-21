@@ -2,7 +2,7 @@
 % Please edit documentation in R/data_link.R
 \name{data_link}
 \alias{data_link}
-\title{Realiza vinculação (linkage) entre bases de dados}
+\title{Run probabilistic linkage between SINAN and SIM}
 \usage{
 data_link(
   df_sinan,
@@ -16,16 +16,23 @@ data_link(
 )
 }
 \arguments{
-\item{df_sinan}{Data frame contendo dados do SINAN}
+\item{df_sinan}{Data.frame or list of data.frames (SINAN)}
 
-\item{df_sim}{Data frame contendo dados do SIM}
+\item{df_sim}{Data.frame or list of data.frames (SIM)}
 
-\item{threshold}{Valor numérico para critério de pareamento}
+\item{dedup_sim}{Logical. Whether to deduplicate SIM}
+
+\item{filter_sogi}{Filter for SOGI groups}
+
+\item{threshold}{Matching threshold (default = 0.35)}
+
+\item{save_summary}{Logical. Save linkage summary}
+
+\item{summary_path}{File path for summary}
 }
 \value{
-Um data frame com os registros vinculados
+A data_link_pipe object
 }
 \description{
-Função para integrar dados provenientes de diferentes sistemas
-de informação em saúde, como SINAN e SIM.
+Run probabilistic linkage between SINAN and SIM
 }
