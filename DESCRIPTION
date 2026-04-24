@@ -1,22 +1,29 @@
 Package: dataLGBT
-Title: Brazilian Sexual and Gender Minorities Death Reporting Tool
-Version: 0.0.0.9000
+Title: Tools for Processing and Reporting SGM Mortality Data in Brazil
+Version: 0.3.0
 Authors@R: 
-    person("Natan", "Nascimento de Oliveira", , "nat_oliveira98@hotmail.com", 
-    role = c("aut", "cre"))
-Description: O pacote dataLGBT foi desenvolvido como uma compilação de funções para processamento, vinculação (linkage) e geração de relatórios de dados. Seu principal objetivo é fornecer autonomia a técnicos de dados em saúde no uso do R para a produção de relatórios sobre mortalidade de pessoas LGBT em diferentes níveis administrativos, de forma amigável e acessível. Além disso, o pacote se alinha a iniciativas voltadas ao uso de dados do DATASUS, como o pacote microdatasus (Saldanha, Bastos e Barcellos, 2019), reconhecido como relevante para a vigilância epidemiológica e a pesquisa em saúde (Paiva, Meijinhos e Brochini, 2022).
+    person("Natan", "Nascimento de Oliveira", 
+           email = "nat_oliveira98@hotmail.com", 
+           role = c("aut", "cre"))
+Description: Provides functions for processing, record linkage, and reporting of mortality and violence data related to sexual and gender minorities (SGM) in Brazil. The package standardizes variables from health information systems such as SIM and SINAN, supports probabilistic linkage workflows, and generates epidemiological indicators and automated reports, including burden of disease measures and temporal analyses.
 License: MIT + file LICENSE
 Encoding: UTF-8
-Roxygen: list(markdown = TRUE)
+Depends: R (>= 4.1.0)
 Imports:
     dplyr,
-    fastLink,
-    stringi,
     magrittr,
-    purrr
+    stringr,
+    lubridate,
+    fastLink,
+    utils,
+    ggplot2,
+    scales,
+    rmarkdown,
+    knitr
 Suggests:
-    knitr,
-    rmarkdown
+    tinytex
+LazyData: true
+Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 URL: https://github.com/nnasc/dataLGBT
 BugReports: https://github.com/nnasc/dataLGBT/issues

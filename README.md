@@ -12,6 +12,11 @@ O **dataLGBT** é um pacote para o R que reúne funções para
 processamento, vinculação (linkage) e geração de relatórios a partir de
 dados de mortalidade de pessoas LGBT no Brasil.
 
+O pacote implementa um pipeline estruturado e reprodutível, permitindo
+integrar bases de dados de diferentes sistemas de informação em saúde e
+gerar bancos prontos para análise com variáveis padronizadas e
+indicadores epidemiológicos.
+
 O pacote foi desenvolvido com o objetivo de fornecer autonomia a
 técnicos de dados em saúde na produção de análises epidemiológicas em
 diferentes níveis administrativos, utilizando dados públicos do DATASUS.
@@ -22,6 +27,17 @@ diferentes níveis administrativos, utilizando dados públicos do DATASUS.
 # install.packages("remotes")
 remotes::install_github("nnasc/dataLGBT")
 ```
+
+## Principais funcionalidades
+
+- Vinculação probabilística utilizando Expectation-Maximization (EM) via
+  fastLink
+- Padronização automática de variáveis
+- Deduplicação probabilística
+- Construção de variáveis epidemiológicas em múltiplos domínios
+- Estimativa de indicadores de carga de doença
+- Geração automatizada de relatórios epidemiológicos
+- Pipeline controlado para garantir reprodutibilidade
 
 ## Utilização
 
@@ -41,12 +57,54 @@ alt="Funções do pacote dataLGBT" />
 <figcaption aria-hidden="true">Funções do pacote dataLGBT</figcaption>
 </figure>
 
-## Exemplo
+### Estrutura do Pipeline
+
+O fluxo analítico do dataLGBT é composto por três etapas principais:
+
+``` r
+SINAN + SIM → data_link() → data_proc() → gen_report() → PDF
+```
+
+**Vinculação dos bancos**
+
+Esta etapa realiza:
+
+- Padronização de variáveis
+- Deduplicação probabilística
+- Blocking e estimação via EM
+- Extração de pares com base em probabilidades posteriores
+
+**Processamento epidemiológico**
+
+Esta etapa gera:
+
+- Banco de dados limpo e padronizado
+- Variáveis derivadas
+- Classificação de óbitos
+
+**Geração de relatórios**
+
+Esta etapa gera:
+
+- Tabelas epidemiológicas padronizadas
+- Indicadores de mortalidade e letalidade
+- Carga de doença (APVP, AVCI, DALY)
+- Gráficos temporais e por causa
+- Exportação automática para PDF
+
+### Exemplo
 
 ``` r
 library(dataLGBT)
 
-# dados_linkados <- data_link(df_sinan, df_sim)
+# 1. Linkage
+link <- data_link(df_sinan, df_sim)
+
+# 2. Processamento
+proc <- data_proc(link)
+
+# 3. Gerar relatório
+report <- gen_report(proc, export = TRUE)
 ```
 
 ## Aplicação
@@ -58,13 +116,46 @@ pessoas LGBT, podendo ser utilizado em:
 - Pesquisa em saúde pública  
 - Monitoramento de indicadores de violência
 
-## Fonte de dados
+## Notas Metodológicas
+
+### Vinculação probabilística
+
+A vinculação é baseada no modelo probabilístico de Fellegi-Sunter,
+operacionalizado por meio do pacote fastLink:
+
+- Estimação de parâmetros via algoritmo EM
+- Comparação de strings para nomes
+- Tratamento de concordância parcial
+- Uso de probabilidades posteriores para definição de pares
+
+### Fonte de dados
 
 O pacote foi projetado para trabalhar com dados públicos do DATASUS,
 sendo diretamente os sistemas:
 
 - Sistema de Informação sobre Mortalidade (SIM)  
 - Sistema de Informação de Agravos de Notificação (SINAN)
+
+### Estrutura do relatório gerado
+
+O relatório inclui:
+
+*Tabela 1:* Caracterização dos casos
+
+*Tabela 2:* Indicadores por população SGM
+
+*Tabela 3:* Carga de doença (APVP, AVCI, DALY)
+
+*Tabela 4:* Distribuição das causas de mortalidade
+
+*Gráficos:*
+
+- Óbitos ao longo do tempo
+- Casos ao longo do tempo
+- Letalidade por grupo SGM
+- Distribuição de causas (CID-10)
+
+*Principais achados* (gerados automaticamente)
 
 ## Como citar
 
@@ -77,3 +168,6 @@ mortalidade de pessoas LGBT no Brasil. \[R package\].
 
 Para reportar problemas ou sugerir melhorias, utilize a aba *Issues* no
 repositório do GitHub.
+
+![R](https://img.shields.io/badge/language-R-blue)
+![status](https://img.shields.io/badge/status-development-yellow)
