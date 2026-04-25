@@ -1,5 +1,5 @@
 Package: dataLGBT
-Title: Tools for Processing and Reporting SGM Mortality Data in Brazil
+Title: Brazilian Sexual and Gender Minorities Death Reporting Tool
 Version: 0.3.0
 Authors@R: 
     person("Natan", "Nascimento de Oliveira", 

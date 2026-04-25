@@ -65,26 +65,20 @@ O fluxo analítico do dataLGBT é composto por três etapas principais:
 SINAN + SIM → data_link() → data_proc() → gen_report() → PDF
 ```
 
-**Vinculação dos bancos**
-
-Esta etapa realiza:
+1.  Vinculação dos bancos
 
 - Padronização de variáveis
 - Deduplicação probabilística
 - Blocking e estimação via EM
 - Extração de pares com base em probabilidades posteriores
 
-**Processamento epidemiológico**
-
-Esta etapa gera:
+2.  Processamento epidemiológico
 
 - Banco de dados limpo e padronizado
 - Variáveis derivadas
 - Classificação de óbitos
 
-**Geração de relatórios**
-
-Esta etapa gera:
+3.  Geração de relatórios
 
 - Tabelas epidemiológicas padronizadas
 - Indicadores de mortalidade e letalidade
