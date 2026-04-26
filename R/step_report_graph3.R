@@ -1,198 +1,197 @@
 # =========================
-# STEP: REPORT GRAPH 3 (LETALIDADE POR SGM)
+# STEP: CID + CARGA DE DOENÇA
 # =========================
 
-step_report_graph3 <- function(max_lines = 6) {
+step_proc_cid <- function(expectativa_vida = 76.6,
+                          usar_pesos_daly = TRUE) {
 
-  function(report) {
+  function(pipe) {
 
-    if (!inherits(report, "dataLGBT_report")) {
-      stop("`report` deve ser um objeto da classe 'dataLGBT_report'.")
+    # -------------------------
+    # 1. Validação
+    # -------------------------
+    if (is.null(pipe$data$proc$data)) {
+      stop("`proc_core()` deve ser executado antes de `step_proc_cid()`.")
     }
 
-    df <- report$data$raw
+    df <- pipe$data$proc$data
 
-    idioma   <- report$meta$idioma %||% "pt"
-    time.comp <- report$meta$time.comp %||% "ano"
-    sogi.filter <- report$meta$sogi.filter %||% "all"
-
-    # -------------------------------------------------------
-    # 1. Checagens
-    # -------------------------------------------------------
-    if (!(sogi.filter %in% c("all", "lgbt"))) {
-
-      report$graphs$g3 <- NULL
-      report$text$g3 <- NULL
-
-      return(report)
-    }
-
-    required_vars <- c("SGM", "Morte")
-
-    if (!all(required_vars %in% names(df))) {
-
-      warning("Variáveis necessárias para graph3 não encontradas.")
-
-      report$graphs$g3 <- NULL
-      report$text$g3 <- NULL
-
-      return(report)
-    }
-
-    # -------------------------------------------------------
-    # 2. Definir variável de data
-    # -------------------------------------------------------
-    var_data <- NULL
-
-    if ("Data_Violencia" %in% names(df)) {
-      var_data <- "Data_Violencia"
-    } else if ("Data_Obito" %in% names(df)) {
-      var_data <- "Data_Obito"
-    } else {
-
-      report$graphs$g3 <- NULL
-      report$text$g3 <- NULL
-
-      return(report)
-    }
-
-    # -------------------------------------------------------
-    # 3. Preparar dados
-    # -------------------------------------------------------
-    df$SGM <- as.character(df$SGM)
-    df$SGM[is.na(df$SGM) | trimws(df$SGM) == ""] <- "Ignorado"
-
-    df[[var_data]] <- as.Date(df[[var_data]])
-    df <- df[!is.na(df[[var_data]]), ]
-
-    if (nrow(df) == 0) {
-      report$graphs$g3 <- NULL
-      report$text$g3 <- NULL
-      return(report)
-    }
-
-    # -------------------------------------------------------
-    # 4. Criar tempo
-    # -------------------------------------------------------
-    if (time.comp == "ano") {
-      df$tempo <- format(df[[var_data]], "%Y")
-      x_lab <- ifelse(idioma == "pt", "Ano", "Year")
-
-    } else if (time.comp == "mes") {
-      df$tempo <- format(df[[var_data]], "%Y-%m")
-      x_lab <- ifelse(idioma == "pt", "Ano-Mês", "Year-Month")
-
-    } else {
-      report$graphs$g3 <- NULL
-      report$text$g3 <- NULL
-      return(report)
-    }
-
-    # -------------------------------------------------------
-    # 5. Calcular letalidade
-    # -------------------------------------------------------
-    df_plot <- df %>%
-      dplyr::group_by(tempo, SGM) %>%
-      dplyr::summarise(
-        casos = dplyr::n(),
-        obitos = sum(Morte == "1 - Sim", na.rm = TRUE),
-        letalidade = ifelse(casos > 0, obitos / casos * 100, NA_real_),
-        .groups = "drop"
-      )
-
-    # -------------------------------------------------------
-    # 6. Reduzir número de grupos (se necessário)
-    # -------------------------------------------------------
-    grupos_top <- df_plot %>%
-      dplyr::group_by(SGM) %>%
-      dplyr::summarise(total = sum(casos), .groups = "drop") %>%
-      dplyr::arrange(dplyr::desc(total)) %>%
-      dplyr::slice_head(n = max_lines) %>%
-      dplyr::pull(SGM)
-
-    df_plot$SGM_plot <- ifelse(
-      df_plot$SGM %in% grupos_top,
-      df_plot$SGM,
-      "Outros"
+    # Aceita os dois nomes possíveis para a causa básica
+    causa_col <- dplyr::case_when(
+      "Causa_Basica" %in% names(df) ~ "Causa_Basica",
+      "CAUSABAS" %in% names(df) ~ "CAUSABAS",
+      TRUE ~ NA_character_
     )
 
-    # -------------------------------------------------------
-    # 7. Escolher tipo de gráfico
-    # -------------------------------------------------------
-    n_grupos <- length(unique(df_plot$SGM_plot))
+    if (is.na(causa_col)) {
+      stop("Variável de causa básica ausente: esperava `CAUSABAS` ou `Causa_Basica`.")
+    }
 
-    if (n_grupos <= max_lines) {
+    required_vars <- c(
+      causa_col,
+      "Data_Obito",
+      "Data_Violencia",
+      "Idade_Violencia",
+      "Idade_Obito",
+      "Violencia_Fisica_Ampla"
+    )
 
-      # MULTILINE
-      g3 <- ggplot2::ggplot(
-        df_plot,
-        ggplot2::aes(x = tempo, y = letalidade, color = SGM_plot, group = SGM_plot)
-      ) +
-        ggplot2::geom_line() +
-        ggplot2::geom_point() +
-        ggplot2::labs(
-          title = ifelse(idioma == "pt",
-                         "Letalidade ao Longo do Tempo por SGM",
-                         "Case-Fatality Over Time by SGM"),
-          x = x_lab,
-          y = ifelse(idioma == "pt", "Letalidade (%)", "Case-Fatality (%)"),
-          color = "SGM"
-        ) +
-        ggplot2::theme_minimal() +
-        ggplot2::theme(
-          axis.text.x = ggplot2::element_text(angle = 45, hjust = 1)
+    missing_vars <- setdiff(required_vars, names(df))
+
+    if (length(missing_vars) > 0) {
+      stop(
+        paste0(
+          "Variáveis ausentes para `step_proc_cid()`: ",
+          paste(missing_vars, collapse = ", ")
         )
-
-    } else {
-
-      # FACET fallback
-      g3 <- ggplot2::ggplot(
-        df_plot,
-        ggplot2::aes(x = tempo, y = letalidade)
-      ) +
-        ggplot2::geom_line() +
-        ggplot2::facet_wrap(~SGM_plot) +
-        ggplot2::labs(
-          title = ifelse(idioma == "pt",
-                         "Letalidade ao Longo do Tempo por SGM",
-                         "Case-Fatality Over Time by SGM"),
-          x = x_lab,
-          y = ifelse(idioma == "pt", "Letalidade (%)", "Case-Fatality (%)")
-        ) +
-        ggplot2::theme_minimal()
-    }
-
-    # -------------------------------------------------------
-    # 8. Texto
-    # -------------------------------------------------------
-    grupo_max <- df_plot$SGM[which.max(df_plot$letalidade)]
-
-    if (idioma == "pt") {
-      texto3 <- paste0(
-        "O Gráfico 3 apresenta a evolução da letalidade ao longo do tempo. ",
-        "O grupo com maior letalidade observada foi ", grupo_max, "."
-      )
-    } else {
-      texto3 <- paste0(
-        "Graph 3 shows the evolution of case-fatality over time. ",
-        "The group with the highest observed case-fatality was ", grupo_max, "."
       )
     }
 
-    # -------------------------------------------------------
-    # 9. Salvar
-    # -------------------------------------------------------
-    report$graphs$g3 <- g3
-    report$text$g3 <- texto3
-
-    report$steps <- c(report$steps, "graph3")
-
-    report$log$graph3 <- list(
-      timestamp = Sys.time(),
-      n_groups = n_grupos,
-      time_unit = time.comp
+    # -------------------------
+    # 2. Garantir tipos
+    # -------------------------
+    df <- dplyr::mutate(
+      df,
+      dplyr::across(where(is.factor), as.character)
     )
 
-    return(report)
+    # -------------------------
+    # 3. Carregar CID interno do pacote
+    # -------------------------
+    path_cid <- system.file(
+      "extdata",
+      "cid10_grupos.csv",
+      package = "dataLGBT"
+    )
+
+    if (path_cid == "") {
+      stop("Arquivo de CID não encontrado em `inst/extdata/cid10_grupos.csv`.")
+    }
+
+    cid <- readr::read_csv(path_cid, show_col_types = FALSE)
+
+    required_cid_vars <- c("ICD10_Code", "Group_Code")
+    missing_cid_vars <- setdiff(required_cid_vars, names(cid))
+
+    if (length(missing_cid_vars) > 0) {
+      stop(
+        paste0(
+          "O arquivo CID precisa conter as colunas: ",
+          paste(required_cid_vars, collapse = ", ")
+        )
+      )
+    }
+
+    cid <- cid %>%
+      dplyr::mutate(
+        ICD10_Code = stringr::str_remove_all(
+          toupper(trimws(as.character(ICD10_Code))),
+          stringr::fixed(".")
+        )
+      )
+
+    # -------------------------
+    # 4. Preparar CID na base principal
+    # -------------------------
+    df <- df %>%
+      dplyr::mutate(
+        Causa_Basica = stringr::str_remove_all(
+          toupper(trimws(as.character(.data[[causa_col]]))),
+          stringr::fixed(".")
+        ),
+        CID10_Cat = substr(Causa_Basica, 1, 3)
+      ) %>%
+      dplyr::left_join(
+        cid,
+        by = c("CID10_Cat" = "ICD10_Code")
+      )
+
+    if (!"Group_Code" %in% names(df)) {
+      stop("A junção com a tabela CID não funcionou corretamente.")
+    }
+
+    # -------------------------
+    # 5. Identificar óbito e classificar causa
+    # -------------------------
+    df <- df %>%
+      dplyr::mutate(
+        Obito = dplyr::case_when(
+          is.na(Data_Obito) ~ "0 - Nao",
+          TRUE ~ "1 - Sim"
+        ),
+        Violencia_Relacionada = dplyr::case_when(
+          Obito == "1 - Sim" &
+            Group_Code %in% c("245 (X85-Y09)", "246 (Y10-Y34)", "247 (Y35-Y36)") ~ "1 - Homicidio",
+          Obito == "1 - Sim" &
+            Group_Code == "244 (X60-X84)" ~ "2 - Suicidio",
+          Obito == "0 - Nao" ~ "0 - Nao",
+          TRUE ~ "3 - Outras causas"
+        )
+      )
+
+    # -------------------------
+    # 6. Tempo de sobrevivência
+    # -------------------------
+    df <- df %>%
+      dplyr::mutate(
+        Tempo_Sobrevivencia = dplyr::case_when(
+          !is.na(Data_Obito) & !is.na(Data_Violencia) ~
+            as.numeric(difftime(Data_Obito, Data_Violencia, units = "days")) / 365.25,
+          is.na(Data_Obito) & !is.na(Idade_Violencia) ~
+            expectativa_vida - as.numeric(Idade_Violencia),
+          TRUE ~ NA_real_
+        ),
+        Tempo_Sobrevivencia = ifelse(Tempo_Sobrevivencia < 0, 0, Tempo_Sobrevivencia)
+      )
+
+    # -------------------------
+    # 7. APVP
+    # -------------------------
+    df <- df %>%
+      dplyr::mutate(
+        APVP = dplyr::case_when(
+          Obito == "1 - Sim" ~ expectativa_vida - as.numeric(Idade_Obito),
+          TRUE ~ 0
+        ),
+        APVP = ifelse(APVP < 0, 0, APVP)
+      )
+
+    # -------------------------
+    # 8. AVCI (YLD)
+    # -------------------------
+    df <- df %>%
+      dplyr::mutate(
+        .peso_incapacidade = dplyr::case_when(
+          isTRUE(usar_pesos_daly) & Violencia_Fisica_Ampla == "1 - Sim" ~ 0.165,
+          isTRUE(usar_pesos_daly) ~ 0.133,
+          TRUE ~ 1
+        ),
+        AVCI = dplyr::case_when(
+          is.na(Tempo_Sobrevivencia) ~ NA_real_,
+          TRUE ~ Tempo_Sobrevivencia * .peso_incapacidade
+        )
+      )
+
+    # -------------------------
+    # 9. Limpeza
+    # -------------------------
+    df$.peso_incapacidade <- NULL
+
+    # -------------------------
+    # 10. Atualizar pipeline
+    # -------------------------
+    pipe$data$proc$data <- df
+
+    pipe$data$proc$steps <- c(
+      pipe$data$proc$steps,
+      "cid"
+    )
+
+    pipe$proc_meta$steps <- c(
+      pipe$proc_meta$steps,
+      "cid"
+    )
+
+    return(pipe)
   }
 }
