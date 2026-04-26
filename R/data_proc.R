@@ -1,7 +1,7 @@
 # =========================
 # DATA PROC ENGINE
 # =========================
-
+#' @export
 data_proc <- function(link_obj,
                       expectativa_vida = 76.6,
                       usar_pesos_daly = TRUE) {

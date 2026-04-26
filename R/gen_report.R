@@ -1,3 +1,4 @@
+#' @export
 gen_report <- function(proc_data,
                        idioma = c("pt", "en"),
                        sogi.filter = c("all", "lgbt"),
