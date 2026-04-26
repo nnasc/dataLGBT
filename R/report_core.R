@@ -1,3 +1,7 @@
+# =========================
+# CORE: REPORT (CLEAN + DATA QUALITY LAYER)
+# =========================
+
 report_core <- function(proc_data,
                         idioma = c("pt", "en"),
                         sogi.filter = c("all", "lgbt", "gay", "lesbian",
@@ -12,8 +16,9 @@ report_core <- function(proc_data,
   sogi.filter <- match.arg(sogi.filter)
   time.comp <- match.arg(time.comp)
 
-  df <- NULL
-
+  # -------------------------------------------------------
+  # 1. EXTRACAO DE DADOS
+  # -------------------------------------------------------
   if (!is.null(proc_data$data$final) && is.data.frame(proc_data$data$final)) {
     df <- proc_data$data$final
   } else if (!is.null(proc_data$data) && is.data.frame(proc_data$data)) {
@@ -23,61 +28,82 @@ report_core <- function(proc_data,
   }
 
   # -------------------------------------------------------
-  # 1. PADRONIZAÇÃO BÁSICA (DEFENSIVA)
+  # 2. DATA QUALITY LAYER (NOVO)
   # -------------------------------------------------------
+
+  quality_df <- data.frame(
+    variavel = names(df),
+    tipo = vapply(df, function(x) class(x)[1], character(1)),
+    n_na = vapply(df, function(x) sum(is.na(x)), numeric(1)),
+    pct_na = vapply(df, function(x) mean(is.na(x)) * 100, numeric(1)),
+    n_unique = vapply(df, function(x) length(unique(x)), numeric(1)),
+    stringsAsFactors = FALSE
+  )
+
+  report_quality <- list(
+    summary = list(
+      n_rows = nrow(df),
+      n_cols = ncol(df),
+      total_na = sum(is.na(df)),
+      pct_complete = round(mean(complete.cases(df)) * 100, 2)
+    ),
+    table = quality_df,
+    alerts = list()
+  )
+
+  # alertas automáticos (crítico para epidemiologia)
+  high_na_vars <- quality_df$variavel[quality_df$pct_na > 30]
+  if (length(high_na_vars) > 0) {
+    report_quality$alerts$high_na <- high_na_vars
+  }
+
+  # -------------------------------------------------------
+  # 3. SANITIZAÇÃO GLOBAL (CRÍTICA PARA QUARTO)
+  # -------------------------------------------------------
+
+  sanitize_text <- function(x) {
+    x <- as.character(x)
+    x[is.na(x)] <- "Ignorado"
+    x
+  }
+
   df <- df %>%
     dplyr::mutate(
-      dplyr::across(where(is.factor), as.character)
+      dplyr::across(where(is.factor), as.character),
+      dplyr::across(where(is.character), sanitize_text)
     )
 
-  # Garantir colunas críticas (sem quebrar fluxo)
-  if (!"Morte" %in% names(df) && "Obito" %in% names(df)) {
-    df$Morte <- df$Obito
+  # proteção específica para variável sensível do erro atual
+  if ("Raca_Cor" %in% names(df)) {
+    df$Raca_Cor <- sanitize_text(df$Raca_Cor)
   }
 
   # -------------------------------------------------------
-  # 2. APLICAR FILTRO SOGI (AGORA SIM FUNCIONAL)
+  # 4. GARANTIR CONSISTÊNCIA DE VARIÁVEIS CHAVE
   # -------------------------------------------------------
-  if (sogi.filter != "all" && "SGM" %in% names(df)) {
 
-    df$SGM <- as.character(df$SGM)
+  if ("Morte" %in% names(df)) {
+    df$Morte <- as.character(df$Morte)
+  }
 
-    if (sogi.filter == "lgbt") {
-      df <- df[df$SGM != "Ignorado" & !is.na(df$SGM), , drop = FALSE]
-    } else {
-      df <- df[df$SGM == sogi.filter, , drop = FALSE]
-    }
+  if ("SGM" %in% names(df)) {
+    df$SGM <- sanitize_text(df$SGM)
   }
 
   # -------------------------------------------------------
-  # 3. NORMALIZAR time.comp
+  # 5. OVERVIEW METADATA
   # -------------------------------------------------------
-  time.comp <- if (time.comp == "none") NULL else time.comp
 
-  # -------------------------------------------------------
-  # 4. LOGO
-  # -------------------------------------------------------
-  logo_png <- system.file("extdata", "dataLGBT_logo.png", package = "dataLGBT")
-  logo_gif <- system.file("extdata", "dataLGBT.gif", package = "dataLGBT")
-
-  logo_path <- if (nzchar(logo_png)) {
-    logo_png
-  } else if (nzchar(logo_gif)) {
-    logo_gif
-  } else {
-    NA_character_
-  }
-
-  # -------------------------------------------------------
-  # 5. FLAGS DE CONTROLE
-  # -------------------------------------------------------
   allow_lgbt_tables <- sogi.filter %in% c("all", "lgbt")
 
-  # -------------------------------------------------------
-  # 6. ESTRUTURA DO REPORT
-  # -------------------------------------------------------
+  logo_png <- system.file("extdata", "dataLGBT_logo.png", package = "dataLGBT")
+
   report <- list(
-    data = list(raw = df),
+
+    data = list(
+      raw = df,
+      quality = report_quality   # <<< NOVO DATA QUALITY LAYER
+    ),
 
     tables = list(
       overview = NULL,
@@ -110,6 +136,7 @@ report_core <- function(proc_data,
     ),
 
     log = list(),
+
     steps = character(),
 
     meta = list(
@@ -120,7 +147,7 @@ report_core <- function(proc_data,
       add.p = isTRUE(add.p),
       time.comp = time.comp,
       graph.comp = isTRUE(graph.comp),
-      logo_path = logo_path,
+      logo_path = logo_png,
       created_at = Sys.time()
     )
   )

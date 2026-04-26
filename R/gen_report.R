@@ -6,11 +6,13 @@ gen_report <- function(proc_data,
                        add.p = FALSE,
                        time.comp = c("ano", "mes", "dia", "none"),
                        graph.comp = TRUE,
-                       export = FALSE) {
+                       export = TRUE,
+                       format = c("all", "html", "pdf")) {
 
   idioma <- match.arg(idioma)
   sogi.filter <- match.arg(sogi.filter)
   time.comp <- match.arg(time.comp)
+  format <- match.arg(format)
 
   # -------------------------------------------------------
   # 1. CORE
@@ -29,7 +31,10 @@ gen_report <- function(proc_data,
   # 2. GARANTIR CID (CRÍTICO)
   # -------------------------------------------------------
   if (!all(c("APVP", "AVCI", "Grupo_CID") %in% names(report$data$raw))) {
-    report$warnings <- c(report$warnings, "CID step não aplicado — algumas tabelas podem ser afetadas.")
+    report$warnings <- c(
+      report$warnings,
+      "CID step não aplicado — algumas tabelas podem ser afetadas."
+    )
   }
 
   # -------------------------------------------------------
@@ -41,15 +46,11 @@ gen_report <- function(proc_data,
   report <- .dataLGBT_run_report_step(report, "step_report_table3")
   report <- .dataLGBT_run_report_step(report, "step_report_table4")
 
-  # -------------------------------------------------------
-  # 4. GRÁFICOS (com proteção de time.comp)
-  # -------------------------------------------------------
+  # gráficos dependentes de tempo
   if (graph.comp && time.comp != "none") {
-
     report <- .dataLGBT_run_report_step(report, "step_report_graph1")
     report <- .dataLGBT_run_report_step(report, "step_report_graph2")
     report <- .dataLGBT_run_report_step(report, "step_report_graph3")
-
   }
 
   if (graph.comp) {
@@ -58,31 +59,31 @@ gen_report <- function(proc_data,
   }
 
   # -------------------------------------------------------
-  # 5. EXPORT (OPCIONAL)
+  # 4. EXPORT (QUARTO)
   # -------------------------------------------------------
-  if (export) {
+  if (isTRUE(export)) {
 
-    pdf_name <- paste0(
+    base_name <- paste0(
       "dataLGBT_report_",
-      format(Sys.time(), "%Y%m%d_%H%M%S"),
-      ".pdf"
+      format(Sys.time(), "%Y%m%d_%H%M%S")
     )
 
-    pdf_file <- .dataLGBT_write_report_rmd(
+    output <- .dataLGBT_write_report_qmd(
       report,
-      output_file = pdf_name
+      output_file = base_name,
+      format = format
     )
 
-    report$meta$output_pdf <- pdf_file
+    report$meta$output <- output
 
     return(invisible(list(
       report = report,
-      pdf_file = pdf_file
+      output = output
     )))
   }
 
   # -------------------------------------------------------
-  # 6. RETURN
+  # 5. RETURN
   # -------------------------------------------------------
   return(report)
 }
