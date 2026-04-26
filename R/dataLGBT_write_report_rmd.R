@@ -67,7 +67,7 @@ library(scales)
 
 "
 
-  ---------------- PRINCIPAIS ACHADOS ----------------
+  # ---------------- PRINCIPAIS ACHADOS ----------------
 
     gerar_achados <- function(report) {
 
