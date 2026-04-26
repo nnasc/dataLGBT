@@ -2,9 +2,7 @@
 # STEP: REPORT GRAPH 2 (CASOS NO TEMPO)
 # =========================
 
-step_report_graph2 <- function() {
-
-  function(report) {
+step_report_graph2 <- function(report) {
 
     if (!inherits(report, "dataLGBT_report")) {
       stop("`report` deve ser um objeto da classe 'dataLGBT_report'.")
@@ -110,4 +108,3 @@ step_report_graph2 <- function() {
 
     return(report)
   }
-}

@@ -2,9 +2,7 @@
 # STEP: REPORT TABLE 2 (SGM)
 # =========================
 
-step_report_table2 <- function() {
-
-  function(report) {
+step_report_table2 <- function(report) {
 
     if (!inherits(report, "dataLGBT_report")) {
       stop("`report` deve ser um objeto da classe 'dataLGBT_report'.")
@@ -132,4 +130,3 @@ step_report_table2 <- function() {
 
     return(report)
   }
-}

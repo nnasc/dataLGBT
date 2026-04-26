@@ -2,9 +2,7 @@
 # STEP: REPORT TABLE 4 (CID)
 # =========================
 
-step_report_table4 <- function() {
-
-  function(report) {
+step_report_table4 <- function(report) {
 
     if (!inherits(report, "dataLGBT_report")) {
       stop("`report` deve ser um objeto da classe 'dataLGBT_report'.")
@@ -77,8 +75,11 @@ step_report_table4 <- function() {
     # 5. Função percentual
     # -------------------------------------------------------
     fmt_pct <- function(n, denom) {
-      if (is.na(denom) || denom == 0) return(NA_character_)
-      paste0(n, " (", sprintf("%.1f", 100 * n / denom), "%)")
+      ifelse(
+        is.na(denom) | denom == 0,
+        NA_character_,
+        paste0(n, " (", sprintf("%.1f", 100 * n / denom), "%)")
+      )
     }
 
     total_geral <- nrow(df_obito)
@@ -182,4 +183,3 @@ step_report_table4 <- function() {
 
     return(report)
   }
-}

@@ -12,15 +12,15 @@ report_core <- function(proc_data,
   sogi.filter <- match.arg(sogi.filter)
   time.comp <- match.arg(time.comp)
 
-  if (!inherits(proc_data, "data_proc_pipe")) {
-    stop("`proc_data` deve ser um objeto da classe 'data_proc_pipe'. Execute `data_proc()` primeiro.")
-  }
+  df <- NULL
 
-  if (is.null(proc_data$data$final) || !is.data.frame(proc_data$data$final)) {
-    stop("`proc_data$data$final` não foi encontrado ou é inválido.")
+  if (!is.null(proc_data$data$final) && is.data.frame(proc_data$data$final)) {
+    df <- proc_data$data$final
+  } else if (!is.null(proc_data$data) && is.data.frame(proc_data$data)) {
+    df <- proc_data$data
+  } else {
+    stop("`proc_data$data` não foi encontrado ou é inválido.", call. = FALSE)
   }
-
-  df <- proc_data$data$final
 
   # -------------------------------------------------------
   # 1. PADRONIZAÇÃO BÁSICA (DEFENSIVA)

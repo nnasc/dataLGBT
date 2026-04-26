@@ -1,7 +1,3 @@
-# =========================
-# CORE: PROC
-# =========================
-
 proc_core <- function() {
 
   function(data_links) {
@@ -23,19 +19,17 @@ proc_core <- function() {
     # -------------------------------------------------------
     df <- data_links$data$linkage$matches
 
+    # guarda os nomes antes da normalização
+    raw_vars_original <- names(df)
+
     # -------------------------------------------------------
     # 3. NORMALIZAÇÃO DE NOMES (CRÍTICO)
-    #    - remove sufixos .x / .y
-    #    - padroniza nomes duplicados
     # -------------------------------------------------------
     normalize_names <- function(df) {
 
       nms <- names(df)
 
-      # remove .x / .y
       nms <- gsub("\\.(x|y)$", "", nms)
-
-      # garantir unicidade
       nms <- make.unique(nms)
 
       names(df) <- nms
@@ -44,12 +38,15 @@ proc_core <- function() {
 
     df <- normalize_names(df)
 
+    # guarda os nomes já normalizados que serão removidos no fim
+    raw_vars <- names(df)
+
     # -------------------------------------------------------
     # 4. Criar estrutura do pipe
     # -------------------------------------------------------
     pipe <- list(
       data = list(
-        linkage = data_links$data$linkage,  # mantém linkage
+        linkage = data_links$data$linkage,
         proc = list(
           data = df,
           steps = character()
@@ -57,7 +54,9 @@ proc_core <- function() {
       ),
       proc_meta = list(
         timestamp = Sys.time(),
-        steps = character()
+        steps = character(),
+        raw_vars_original = raw_vars_original,
+        raw_vars = raw_vars
       )
     )
 

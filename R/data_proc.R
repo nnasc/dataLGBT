@@ -59,7 +59,12 @@ data_proc <- function(link_obj,
   )
 
   # -------------------------
-  # 3. Consolidar saída
+  # 3. Remover variáveis originais (AUTOMÁTICO)
+  # -------------------------
+  pipe <- run_step(pipe, "drop_raw", step_proc_drop_raw())
+
+  # -------------------------
+  # 4. Consolidar saída
   # -------------------------
   result <- list(
     data = pipe$data$proc$data,

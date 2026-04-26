@@ -116,7 +116,7 @@ step_proc_obito <- function() {
         TRUE ~ "0 - Nao"
       ),
 
-      Assistencia_Medica = binario_sim_nao(ASSMEDIC),
+      Assistencia_Medica = binario_sim_nao(ASSISTMED),
       Exame_Complementar = binario_sim_nao(EXAME),
       Cirurgia = binario_sim_nao(CIRURGIA),
       Necropsia = binario_sim_nao(NECROPSIA),
@@ -161,7 +161,7 @@ step_proc_obito <- function() {
     # -------------------------
     remove_vars <- c(
       "NUMERODO", "TIPOBITO", "DTOBITO", "HORAOBITO", "LOCOCOR",
-      "CIRCOBITO", "ASSMEDIC", "EXAME", "CIRURGIA", "NECROPSIA",
+      "CIRCOBITO", "ASSISTMED", "EXAME", "CIRURGIA", "NECROPSIA",
       "TPPOS", "ACIDTRAB", "FONTE", "FONTEINV", "DTCADASTRO",
       "DTRECEBIM", "DTRECORIG", "CAUSABAS"
     )

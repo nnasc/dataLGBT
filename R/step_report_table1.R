@@ -2,9 +2,7 @@
 # STEP: REPORT TABLE 1
 # =========================
 
-step_report_table1 <- function() {
-
-  function(report) {
+step_report_table1 <- function(report) {
 
     if (!inherits(report, "dataLGBT_report")) {
       stop("`report` deve ser um objeto da classe 'dataLGBT_report'.")
@@ -241,4 +239,3 @@ step_report_table1 <- function() {
 
     return(report)
   }
-}

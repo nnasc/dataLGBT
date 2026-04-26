@@ -2,15 +2,16 @@
 # STEP: REPORT GRAPH 3 (LETALIDADE POR SGM)
 # =========================
 
-step_report_graph3 <- function(max_lines = 6, min_n = 5) {
+step_report_graph3 <- function(report) {
 
-  function(report) {
+  if (!inherits(report, "dataLGBT_report")) {
+    stop("`report` deve ser um objeto da classe 'dataLGBT_report'.")
+  }
 
-    if (!inherits(report, "dataLGBT_report")) {
-      stop("`report` deve ser um objeto da classe 'dataLGBT_report'.")
-    }
+  max_lines <- report$meta$graph3_max_lines %||% 6
+  min_n     <- report$meta$graph3_min_n %||% 5
 
-    df <- report$data$raw
+  df <- report$data$raw
 
     idioma      <- report$meta$idioma %||% "pt"
     time.comp   <- report$meta$time.comp %||% "ano"
@@ -193,4 +194,3 @@ step_report_graph3 <- function(max_lines = 6, min_n = 5) {
 
     return(report)
   }
-}

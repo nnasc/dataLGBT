@@ -1,12 +1,10 @@
-step_report_overview <- function() {
+step_report_overview <- function(report) {
 
-  function(report) {
+  if (!inherits(report, "dataLGBT_report")) {
+    stop("`report` deve ser um objeto da classe 'dataLGBT_report'.")
+  }
 
-    if (!inherits(report, "dataLGBT_report")) {
-      stop("`report` deve ser um objeto da classe 'dataLGBT_report'.")
-    }
-
-    df <- report$data$raw
+  df <- report$data$raw
 
     if (!is.data.frame(df)) {
       stop("`report$data$raw` deve ser um data.frame.")
@@ -166,4 +164,3 @@ step_report_overview <- function() {
 
     return(report)
   }
-}

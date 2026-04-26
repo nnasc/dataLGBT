@@ -2,15 +2,15 @@
 # STEP: REPORT GRAPH 5 (CAUSAS POR SGM)
 # =========================
 
-step_report_graph5 <- function(top_n = 8) {
+step_report_graph5 <- function(report) {
 
-  function(report) {
+  if (!inherits(report, "dataLGBT_report")) {
+    stop("`report` deve ser um objeto da classe 'dataLGBT_report'.")
+  }
 
-    if (!inherits(report, "dataLGBT_report")) {
-      stop("`report` deve ser um objeto da classe 'dataLGBT_report'.")
-    }
+  top_n <- report$meta$graph5_top_n %||% 8
 
-    df <- report$data$raw
+  df <- report$data$raw
 
     idioma      <- report$meta$idioma %||% "pt"
     sogi.filter <- report$meta$sogi.filter %||% "all"
@@ -161,4 +161,3 @@ step_report_graph5 <- function(top_n = 8) {
 
     return(report)
   }
-}

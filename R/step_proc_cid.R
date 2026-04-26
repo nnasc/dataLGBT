@@ -70,7 +70,12 @@ step_proc_cid <- function(expectativa_vida = 76.6,
       stop("Arquivo de CID não encontrado em `inst/extdata/cid10_grupos.csv`.", call. = FALSE)
     }
 
-    cid <- readr::read_csv(path_cid, show_col_types = FALSE)
+    cid <- readr::read_delim(
+      path_cid,
+      delim = ";",
+      show_col_types = FALSE,
+      locale = readr::locale(encoding = "UTF-8")
+    )
 
     required_cid_vars <- c("ICD10_Code", "Group_Code")
     missing_cid_vars <- setdiff(required_cid_vars, names(cid))

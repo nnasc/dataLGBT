@@ -2,17 +2,17 @@
 # STEP: REPORT GRAPH 4 (CAUSAS DE MORTE)
 # =========================
 
-step_report_graph4 <- function(top_n = 10) {
+step_report_graph4 <- function(report) {
 
-  function(report) {
+  if (!inherits(report, "dataLGBT_report")) {
+    stop("`report` deve ser um objeto da classe 'dataLGBT_report'.")
+  }
 
-    if (!inherits(report, "dataLGBT_report")) {
-      stop("`report` deve ser um objeto da classe 'dataLGBT_report'.")
-    }
+  top_n <- report$meta$graph4_top_n %||% 10
 
-    df <- report$data$raw
+  df <- report$data$raw
 
-    idioma <- report$meta$idioma %||% "pt"
+  idioma <- report$meta$idioma %||% "pt"
 
     # -------------------------------------------------------
     # 1. Checagens
@@ -158,4 +158,3 @@ step_report_graph4 <- function(top_n = 10) {
 
     return(report)
   }
-}
