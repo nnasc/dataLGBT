@@ -17,7 +17,7 @@ report_core <- function(proc_data,
   time.comp <- match.arg(time.comp)
 
   # -------------------------------------------------------
-  # 1. EXTRACAO
+  # 1. EXTRACAO ROBUSTA
   # -------------------------------------------------------
   if (!is.null(proc_data$data$final) && is.data.frame(proc_data$data$final)) {
     df <- proc_data$data$final
@@ -28,7 +28,7 @@ report_core <- function(proc_data,
   }
 
   # -------------------------------------------------------
-  # 2. DATA QUALITY LAYER
+  # 2. DATA QUALITY LAYER (DIAGNÓSTICO)
   # -------------------------------------------------------
   quality_df <- data.frame(
     variavel = names(df),
@@ -53,7 +53,7 @@ report_core <- function(proc_data,
   )
 
   # -------------------------------------------------------
-  # 3. SANITIZAÇÃO RAW (uso interno)
+  # 3. SANITIZAÇÃO (RAW SAFE LAYER)
   # -------------------------------------------------------
   sanitize_chr <- function(x) {
     x <- as.character(x)
@@ -61,17 +61,13 @@ report_core <- function(proc_data,
     x
   }
 
-  df <- df %>%
+  df <- df |>
     dplyr::mutate(
       dplyr::across(where(is.factor), as.character),
       dplyr::across(where(is.character), sanitize_chr)
     )
 
-  # datas críticas (evita warning no Quarto)
-  if ("Data_Cadastro" %in% names(df)) {
-    df$Data_Cadastro <- as.Date(df$Data_Cadastro)
-  }
-
+  # proteção específica de tipos críticos
   if ("Raca_Cor" %in% names(df)) {
     df$Raca_Cor <- sanitize_chr(df$Raca_Cor)
   }
@@ -85,15 +81,21 @@ report_core <- function(proc_data,
   }
 
   # -------------------------------------------------------
-  # 4. RENDER LAYER (CRÍTICO PARA QUARTO)
+  # 4. RENDER LAYER (QUARTO SAFE)
   # -------------------------------------------------------
-  df_render <- df %>%
+  df_render <- df |>
     dplyr::mutate(
       dplyr::across(where(is.character), ~ tidyr::replace_na(.x, "Ignorado"))
     )
 
+  # garante que nada crítico quebra render
+  df_render <- df_render |>
+    dplyr::mutate(
+      dplyr::across(where(is.list), ~ NULL)
+    )
+
   # -------------------------------------------------------
-  # 5. REPORT OBJECT
+  # 5. BUILD REPORT OBJECT
   # -------------------------------------------------------
   report <- list(
 
@@ -148,5 +150,6 @@ report_core <- function(proc_data,
   )
 
   class(report) <- "dataLGBT_report"
+
   return(report)
 }

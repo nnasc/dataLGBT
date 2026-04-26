@@ -143,10 +143,6 @@ step_proc_obito <- function() {
         TRUE ~ NA_character_
       ),
 
-      Data_Cadastro = parse_date_br(DTCADASTRO),
-      Data_Recebimento = parse_date_br(DTRECEBIM),
-      Data_Recebimento_Original = parse_date_br(DTRECORIG),
-
       Causa_Basica = as.character(CAUSABAS),
 
       CID10_3 = dplyr::if_else(
