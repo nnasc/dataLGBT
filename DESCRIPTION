@@ -1,6 +1,6 @@
 Package: dataLGBT
 Title: Brazilian Sexual and Gender Minorities Death Reporting Tool
-Version: 0.5.0
+Version: 0.5.1
 Authors@R: 
     person("Natan", "Nascimento de Oliveira", 
            email = "nat_oliveira98@hotmail.com", 

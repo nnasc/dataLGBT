@@ -1,5 +1,5 @@
 # =========================
-# CORE: REPORT (CLEAN + DATA QUALITY LAYER)
+# CORE: REPORT
 # =========================
 
 report_core <- function(proc_data,
@@ -17,7 +17,7 @@ report_core <- function(proc_data,
   time.comp <- match.arg(time.comp)
 
   # -------------------------------------------------------
-  # 1. EXTRACAO DE DADOS
+  # 1. EXTRACAO
   # -------------------------------------------------------
   if (!is.null(proc_data$data$final) && is.data.frame(proc_data$data$final)) {
     df <- proc_data$data$final
@@ -28,9 +28,8 @@ report_core <- function(proc_data,
   }
 
   # -------------------------------------------------------
-  # 2. DATA QUALITY LAYER (NOVO)
+  # 2. DATA QUALITY LAYER
   # -------------------------------------------------------
-
   quality_df <- data.frame(
     variavel = names(df),
     tipo = vapply(df, function(x) class(x)[1], character(1)),
@@ -48,20 +47,15 @@ report_core <- function(proc_data,
       pct_complete = round(mean(complete.cases(df)) * 100, 2)
     ),
     table = quality_df,
-    alerts = list()
+    alerts = list(
+      high_na = quality_df$variavel[quality_df$pct_na > 30]
+    )
   )
 
-  # alertas automáticos (crítico para epidemiologia)
-  high_na_vars <- quality_df$variavel[quality_df$pct_na > 30]
-  if (length(high_na_vars) > 0) {
-    report_quality$alerts$high_na <- high_na_vars
-  }
-
   # -------------------------------------------------------
-  # 3. SANITIZAÇÃO GLOBAL (CRÍTICA PARA QUARTO)
+  # 3. SANITIZAÇÃO RAW (uso interno)
   # -------------------------------------------------------
-
-  sanitize_text <- function(x) {
+  sanitize_chr <- function(x) {
     x <- as.character(x)
     x[is.na(x)] <- "Ignorado"
     x
@@ -70,39 +64,43 @@ report_core <- function(proc_data,
   df <- df %>%
     dplyr::mutate(
       dplyr::across(where(is.factor), as.character),
-      dplyr::across(where(is.character), sanitize_text)
+      dplyr::across(where(is.character), sanitize_chr)
     )
 
-  # proteção específica para variável sensível do erro atual
-  if ("Raca_Cor" %in% names(df)) {
-    df$Raca_Cor <- sanitize_text(df$Raca_Cor)
+  # datas críticas (evita warning no Quarto)
+  if ("Data_Cadastro" %in% names(df)) {
+    df$Data_Cadastro <- as.Date(df$Data_Cadastro)
   }
 
-  # -------------------------------------------------------
-  # 4. GARANTIR CONSISTÊNCIA DE VARIÁVEIS CHAVE
-  # -------------------------------------------------------
+  if ("Raca_Cor" %in% names(df)) {
+    df$Raca_Cor <- sanitize_chr(df$Raca_Cor)
+  }
+
+  if ("SGM" %in% names(df)) {
+    df$SGM <- sanitize_chr(df$SGM)
+  }
 
   if ("Morte" %in% names(df)) {
     df$Morte <- as.character(df$Morte)
   }
 
-  if ("SGM" %in% names(df)) {
-    df$SGM <- sanitize_text(df$SGM)
-  }
+  # -------------------------------------------------------
+  # 4. RENDER LAYER (CRÍTICO PARA QUARTO)
+  # -------------------------------------------------------
+  df_render <- df %>%
+    dplyr::mutate(
+      dplyr::across(where(is.character), ~ tidyr::replace_na(.x, "Ignorado"))
+    )
 
   # -------------------------------------------------------
-  # 5. OVERVIEW METADATA
+  # 5. REPORT OBJECT
   # -------------------------------------------------------
-
-  allow_lgbt_tables <- sogi.filter %in% c("all", "lgbt")
-
-  logo_png <- system.file("extdata", "dataLGBT_logo.png", package = "dataLGBT")
-
   report <- list(
 
     data = list(
       raw = df,
-      quality = report_quality   # <<< NOVO DATA QUALITY LAYER
+      render = df_render,
+      quality = report_quality
     ),
 
     tables = list(
@@ -136,23 +134,19 @@ report_core <- function(proc_data,
     ),
 
     log = list(),
-
     steps = character(),
 
     meta = list(
       idioma = idioma,
       sogi.filter = sogi.filter,
-      allow_lgbt_tables = allow_lgbt_tables,
       var.by = var.by,
       add.p = isTRUE(add.p),
       time.comp = time.comp,
       graph.comp = isTRUE(graph.comp),
-      logo_path = logo_png,
       created_at = Sys.time()
     )
   )
 
   class(report) <- "dataLGBT_report"
-
   return(report)
 }

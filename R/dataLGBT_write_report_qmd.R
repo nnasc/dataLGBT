@@ -14,7 +14,9 @@
   idioma <- report$meta$idioma %||% "pt"
   data_relatorio <- format(Sys.Date(), "%d/%m/%Y")
 
-  # ---------------- LOGO ----------------
+  # -------------------------------------------------------
+  # LOGO
+  # -------------------------------------------------------
   if (is.null(logo_path) || !file.exists(logo_path)) {
     logo_path <- system.file("extdata", "logo.png", package = "dataLGBT")
   }
@@ -23,7 +25,9 @@
     paste0("![](", normalizePath(logo_path, winslash = "/"), "){width=120px}\n")
   } else ""
 
-  # ---------------- FRONTMATTER QUARTO ----------------
+  # -------------------------------------------------------
+  # QMD HEADER
+  # -------------------------------------------------------
   yaml <- paste0(
     "---\n",
     "title: \"Boletim Epidemiológico\"\n",
@@ -39,30 +43,36 @@
     "---\n"
   )
 
-  # ---------------- CONTENT ----------------
+  # -------------------------------------------------------
+  # CONTENT (USANDO RENDER SAFE DATA)
+  # -------------------------------------------------------
   content <- paste0(
     logo_block, "\n",
 
     "# Visão Geral\n\n",
     "```{r}\n",
+    "report$data$render\n",
+    "```\n",
+
+    "\n# Tabela Overview\n\n",
+    "```{r}\n",
     "report$tables$overview\n",
     "```\n",
 
-    "\n# Gráfico principal\n\n",
+    "\n# Gráfico\n\n",
     "```{r}\n",
     "report$graphs$g_overview\n",
     "```\n"
   )
 
-  # ---------------- FILE ----------------
   qmd_file <- tempfile(fileext = ".qmd")
   writeLines(c(yaml, content), qmd_file)
 
   dir.create(dirname(output_file), recursive = TRUE, showWarnings = FALSE)
 
-  # ---------------- RENDER ----------------
-  outputs <- list()
-
+  # -------------------------------------------------------
+  # RENDER SAFE (NUNCA ABORTA POR WARNING)
+  # -------------------------------------------------------
   render_one <- function(fmt) {
 
     out <- paste0(output_file, ".", fmt)
@@ -72,20 +82,24 @@
       quarto::quarto_render(
         input = qmd_file,
         output_format = fmt,
-        output_file = out,
-        execute_params = list(report = report)
+        output_file = out
       )
 
       out
 
+    }, warning = function(w) {
+      message("Warning ignorado: ", w$message)
+      invokeRestart("muffleWarning")
     }, error = function(e) {
-      warning(paste("Falha no formato", fmt, ":", e$message))
+      message("Erro no render (", fmt, "): ", e$message)
       NULL
     })
   }
 
+  outputs <- list()
+
   if (format %in% c("html", "all")) outputs$html <- render_one("html")
-  if (format %in% c("pdf", "all"))  outputs$pdf  <- render_one("pdf")
+  if (format %in% c("pdf", "all")) outputs$pdf <- render_one("pdf")
   if (format %in% c("docx", "all")) outputs$docx <- render_one("docx")
 
   if (all(vapply(outputs, is.null, logical(1)))) {
