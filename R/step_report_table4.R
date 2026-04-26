@@ -16,21 +16,13 @@ step_report_table4 <- function() {
     sogi.filter <- report$meta$sogi.filter %||% "all"
 
     # -------------------------------------------------------
-    # 1. Verificar variáveis necessárias
+    # 1. Checagem de variáveis
     # -------------------------------------------------------
-    if (!("Grupo_CID" %in% names(df))) {
+    required_vars <- c("Grupo_CID", "Morte")
 
-      warning("Variável 'Grupo_CID' não encontrada. Tabela 4 não será gerada.")
+    if (!all(required_vars %in% names(df))) {
 
-      report$tables$t4 <- NULL
-      report$text$t4 <- NULL
-
-      return(report)
-    }
-
-    if (!("Morte" %in% names(df))) {
-
-      warning("Variável 'Morte' não encontrada. Tabela 4 não será gerada.")
+      warning("Variáveis necessárias para Tabela 4 não encontradas.")
 
       report$tables$t4 <- NULL
       report$text$t4 <- NULL
@@ -39,7 +31,7 @@ step_report_table4 <- function() {
     }
 
     # -------------------------------------------------------
-    # 2. Filtrar apenas óbitos
+    # 2. Filtrar óbitos
     # -------------------------------------------------------
     df_obito <- df %>%
       dplyr::filter(Morte == "1 - Sim")
@@ -59,11 +51,21 @@ step_report_table4 <- function() {
     }
 
     # -------------------------------------------------------
-    # 3. Preparar variáveis
+    # 3. Limpeza de variáveis
     # -------------------------------------------------------
-    df_obito$Grupo_CID <- as.character(df_obito$Grupo_CID)
-    df_obito$Grupo_CID[is.na(df_obito$Grupo_CID) | trimws(df_obito$Grupo_CID) == ""] <- "Ignorado"
+    df_obito <- df_obito %>%
+      dplyr::mutate(
+        Grupo_CID = as.character(Grupo_CID),
+        Grupo_CID = dplyr::if_else(
+          is.na(Grupo_CID) | trimws(Grupo_CID) == "",
+          "Ignorado",
+          Grupo_CID
+        )
+      )
 
+    # -------------------------------------------------------
+    # 4. Definir uso de SGM
+    # -------------------------------------------------------
     use_sgm <- sogi.filter %in% c("all", "lgbt") && "SGM" %in% names(df_obito)
 
     if (use_sgm) {
@@ -72,59 +74,61 @@ step_report_table4 <- function() {
     }
 
     # -------------------------------------------------------
-    # 4. Função auxiliar
+    # 5. Função percentual
     # -------------------------------------------------------
     fmt_pct <- function(n, denom) {
-      if (denom == 0) return(NA_character_)
+      if (is.na(denom) || denom == 0) return(NA_character_)
       paste0(n, " (", sprintf("%.1f", 100 * n / denom), "%)")
     }
 
+    total_geral <- nrow(df_obito)
+
     # -------------------------------------------------------
-    # 5. Construir tabela
+    # 6. Construção da tabela
     # -------------------------------------------------------
     if (use_sgm) {
 
+      # Total por SGM
       total_por_sgm <- df_obito %>%
         dplyr::count(SGM, name = "total_sgm")
 
+      # Tabela estratificada
       tabela4 <- df_obito %>%
         dplyr::count(Grupo_CID, SGM, name = "n") %>%
         dplyr::left_join(total_por_sgm, by = "SGM") %>%
         dplyr::mutate(valor = fmt_pct(n, total_sgm)) %>%
-        dplyr::select(-n, -total_sgm) %>%
+        dplyr::select(Grupo_CID, SGM, valor) %>%
         tidyr::pivot_wider(
           names_from = SGM,
-          values_from = valor
+          values_from = valor,
+          values_fill = NA_character_
         )
 
-      # Total geral
-      total_geral <- nrow(df_obito)
-
+      # Total geral por causa (USADO PARA ORDENAR)
       total_col <- df_obito %>%
         dplyr::count(Grupo_CID, name = "n_total") %>%
-        dplyr::mutate(Total = fmt_pct(n_total, total_geral)) %>%
-        dplyr::select(-n_total)
+        dplyr::mutate(
+          Total = fmt_pct(n_total, total_geral)
+        )
 
-      tabela4 <- dplyr::left_join(total_col, tabela4, by = "Grupo_CID")
+      tabela4 <- total_col %>%
+        dplyr::left_join(tabela4, by = "Grupo_CID") %>%
+        dplyr::arrange(dplyr::desc(n_total)) %>%
+        dplyr::select(-n_total)
 
     } else {
 
-      total_geral <- nrow(df_obito)
-
       tabela4 <- df_obito %>%
-        dplyr::count(Grupo_CID, name = "n") %>%
+        dplyr::count(Grupo_CID, name = "n_total") %>%
         dplyr::mutate(
-          Total = fmt_pct(n, total_geral)
+          Total = fmt_pct(n_total, total_geral)
         ) %>%
-        dplyr::select(-n)
+        dplyr::arrange(dplyr::desc(n_total)) %>%
+        dplyr::select(-n_total)
     }
 
-    # Ordenar por frequência
-    tabela4 <- tabela4 %>%
-      dplyr::arrange(dplyr::desc(Total))
-
     # -------------------------------------------------------
-    # 6. Texto interpretativo
+    # 7. Texto interpretativo
     # -------------------------------------------------------
     principal_causa <- tabela4$Grupo_CID[1]
 
@@ -132,11 +136,15 @@ step_report_table4 <- function() {
 
       texto4 <- paste0(
         "A Tabela 4 apresenta a distribuição das causas de morte segundo os grupos do CID-10. ",
-        "O grupo mais frequente foi ", principal_causa, ". ",
-        if (use_sgm) {
-          "A distribuição também foi analisada segundo a variável de identidade/orientação sexual (SGM)."
+        if (!is.na(principal_causa)) {
+          paste0("O grupo mais frequente foi ", principal_causa, ". ")
         } else {
-          "A análise foi realizada para o conjunto total de óbitos."
+          ""
+        },
+        if (use_sgm) {
+          "A análise foi estratificada por SGM."
+        } else {
+          "A análise refere-se ao total de óbitos."
         }
       )
 
@@ -144,17 +152,21 @@ step_report_table4 <- function() {
 
       texto4 <- paste0(
         "Table 4 presents the distribution of causes of death according to ICD-10 groups. ",
-        "The most frequent group was ", principal_causa, ". ",
-        if (use_sgm) {
-          "The distribution was also stratified by sexual/gender minority (SGM)."
+        if (!is.na(principal_causa)) {
+          paste0("The most frequent group was ", principal_causa, ". ")
         } else {
-          "The analysis was conducted for total deaths."
+          ""
+        },
+        if (use_sgm) {
+          "The analysis was stratified by SGM."
+        } else {
+          "The analysis refers to total deaths."
         }
       )
     }
 
     # -------------------------------------------------------
-    # 7. Salvar
+    # 8. Salvar
     # -------------------------------------------------------
     report$tables$t4 <- tabela4
     report$text$t4 <- texto4

@@ -1,59 +1,82 @@
 # =========================
-# PROC CORE
+# CORE: PROC
 # =========================
 
 proc_core <- function() {
 
-  function(pipe) {
+  function(data_links) {
 
-    # -------------------------
-    # 1. Validação de entrada
-    # -------------------------
-    if (!inherits(pipe, "data_link_pipe")) {
-      stop("`data_proc()` requer um objeto da classe 'data_link_pipe'. Execute `data_link()` primeiro.")
+    # -------------------------------------------------------
+    # 1. Validação
+    # -------------------------------------------------------
+    if (!inherits(data_links, "data_link_pipe")) {
+      stop("`data_links` deve ser um objeto da classe 'data_link_pipe'.")
     }
 
-    if (is.null(pipe$data$linkage)) {
-      stop("Nenhum objeto de linkage encontrado no pipe.")
+    if (is.null(data_links$data$linkage$matches) ||
+        !is.data.frame(data_links$data$linkage$matches)) {
+      stop("`data_links$data$linkage$matches` deve ser um data.frame.")
     }
 
-    if (is.null(pipe$data$linkage$matches) || nrow(pipe$data$linkage$matches) == 0) {
-      stop("Nenhum match disponível. Verifique o step_linkage().")
+    # -------------------------------------------------------
+    # 2. Extrair dados
+    # -------------------------------------------------------
+    df <- data_links$data$linkage$matches
+
+    # -------------------------------------------------------
+    # 3. NORMALIZAÇÃO DE NOMES (CRÍTICO)
+    #    - remove sufixos .x / .y
+    #    - padroniza nomes duplicados
+    # -------------------------------------------------------
+    normalize_names <- function(df) {
+
+      nms <- names(df)
+
+      # remove .x / .y
+      nms <- gsub("\\.(x|y)$", "", nms)
+
+      # garantir unicidade
+      nms <- make.unique(nms)
+
+      names(df) <- nms
+      df
     }
 
-    # -------------------------
-    # 2. Selecionar base principal
-    # -------------------------
-    df <- pipe$data$linkage$matches
+    df <- normalize_names(df)
 
-    # -------------------------
-    # 3. Sanitização mínima
-    # -------------------------
-    # Evita problemas com factors (muito comum em SIM/SINAN)
-    df <- dplyr::mutate(
-      df,
-      dplyr::across(where(is.factor), as.character)
+    # -------------------------------------------------------
+    # 4. Criar estrutura do pipe
+    # -------------------------------------------------------
+    pipe <- list(
+      data = list(
+        linkage = data_links$data$linkage,  # mantém linkage
+        proc = list(
+          data = df,
+          steps = character()
+        )
+      ),
+      proc_meta = list(
+        timestamp = Sys.time(),
+        steps = character()
+      )
     )
 
-    # -------------------------
-    # 4. Estrutura inicial do proc
-    # -------------------------
-    pipe$data$proc <- list(
-      data = df,
-      steps = character(0)
+    class(pipe) <- "data_link_pipe"
+
+    # -------------------------------------------------------
+    # 5. Log do step
+    # -------------------------------------------------------
+    pipe$data$proc$steps <- c(pipe$data$proc$steps, "proc_core")
+    pipe$proc_meta$steps <- c(pipe$proc_meta$steps, "proc_core")
+
+    pipe$proc_meta$normalize <- list(
+      removed_suffix = TRUE,
+      timestamp = Sys.time()
     )
 
-    # -------------------------
-    # 5. Metadata inicial
-    # -------------------------
-    pipe$proc_meta <- list(
-      n_input_sinan = nrow(pipe$data$sinan_raw),
-      n_input_sim   = nrow(pipe$data$sim_raw),
-      n_matches     = nrow(df),
-      steps         = character(0),
-      timestamp     = Sys.time()
-    )
-
+    # -------------------------------------------------------
+    # 6. Retorno
+    # -------------------------------------------------------
     return(pipe)
   }
 }

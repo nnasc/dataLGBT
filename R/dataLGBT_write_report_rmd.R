@@ -8,7 +8,7 @@
     stop("`report` deve ser um objeto da classe 'dataLGBT_report'.")
   }
 
-  idioma <- if (!is.null(report$meta$idioma)) report$meta$idioma else "pt"
+  idioma <- report$meta$idioma %||% "pt"
   data_relatorio <- format(Sys.Date(), "%d/%m/%Y")
 
   # ---------------- LOGO ----------------
@@ -63,96 +63,114 @@ header-includes:
 library(knitr)
 library(ggplot2)
 library(dplyr)
+library(tidyr)
+library(stringr)
 library(scales)
-
+```
 "
 
   # ---------------- PRINCIPAIS ACHADOS ----------------
+  gerar_achados <- function(report) {
 
-    gerar_achados <- function(report) {
+    tryCatch({
 
-      tryCatch({
-        t2 <- report$tables$t2
-        t3 <- report$tables$t3
+      if (is.null(report$tables$t2)) {
+        return("- Não há dados suficientes para gerar os principais achados.")
+      }
 
-        top_grupo <- t2$SGM[which.max(t2$Obitos)]
-        total_obitos <- sum(t2$Obitos, na.rm = TRUE)
-        total_casos <- sum(t2$Casos, na.rm = TRUE)
+      t2 <- report$tables$t2
 
-        achados <- c(
-          paste0("Foram identificados ", total_casos, " casos e ", total_obitos, " óbitos no período analisado."),
-          paste0("O grupo com maior número de óbitos foi: ", top_grupo, "."),
-          "Observa-se heterogeneidade importante na distribuição das causas de morte.",
-          "A carga de doença evidencia impacto relevante da violência na expectativa de vida."
-        )
+      top_grupo <- t2$SGM[which.max(t2$Obitos)]
+      total_obitos <- sum(t2$Obitos, na.rm = TRUE)
+      total_casos <- sum(t2$Casos, na.rm = TRUE)
 
-        paste0("- ", achados, collapse = "\n")
+      achados <- c(
+        paste0("Foram identificados ", total_casos, " casos e ", total_obitos, " óbitos no período analisado."),
+        paste0("O grupo com maior número de óbitos foi: ", top_grupo, "."),
+        "Observa-se heterogeneidade importante na distribuição das causas de morte.",
+        "A carga de doença evidencia impacto relevante da violência na expectativa de vida."
+      )
 
-      }, error = function(e) {
-        "- Não foi possível gerar automaticamente os principais achados."
-      })
+      paste0("- ", achados, collapse = "\n")
 
-    }
-
-  achados <- gerar_achados(report)
+    }, error = function(e) {
+      "- Não foi possível gerar automaticamente os principais achados."
+    })
+  }
 
   bloco_achados <- paste0(
     "\n# Principais Achados\n\n",
-    achados, "\n\n"
+    gerar_achados(report), "\n\n"
   )
 
   # ---------------- HELPERS ----------------
-
-    section_table <- function(id, titulo, texto) {
-      paste0(
-        "\n# ", titulo, "\n\n",
-        if (!is.null(texto)) paste0(texto, "\n\n") else "",
-        "{r, echo=FALSE}\n", "if (!is.null(report$tables$", id, ")) {\n", " knitr::kable(report$tables$", id, ", format='latex', booktabs=TRUE, longtable=TRUE)\n", "}\n", "\n"
-      )
-    }
+  section_table <- function(id, titulo, texto) {
+    paste0(
+      "\n# ", titulo, "\n\n",
+      if (!is.null(texto)) paste0(texto, "\n\n") else "",
+      "```{r, echo=FALSE}\n",
+      "if (!is.null(report$tables$", id, ")) {\n",
+      " knitr::kable(report$tables$", id, ", format='latex', booktabs=TRUE, longtable=TRUE)\n",
+      "}\n",
+      "```\n"
+    )
+  }
 
   section_plot <- function(id, titulo, texto) {
     paste0(
       "\n# ", titulo, "\n\n",
       if (!is.null(texto)) paste0(texto, "\n\n") else "",
-      "{r, echo=FALSE, fig.width=7, fig.height=4.5}\n", "if (!is.null(report$graphs$", id, ")) {\n", " print(report$graphs$", id, ")\n", "}\n", "\n"
+      "```{r, echo=FALSE, fig.width=7, fig.height=4.5}\n",
+      "if (!is.null(report$graphs$", id, ")) {\n",
+      " print(report$graphs$", id, ")\n",
+      "}\n",
+      "```\n"
     )
   }
 
+  # ---------------- OVERVIEW ----------------
+  bloco_overview <- paste0(
+    "\n# Visão Geral\n\n",
+    if (!is.null(report$text$overview)) paste0(report$text$overview, "\n\n") else "",
+    "```{r, echo=FALSE, fig.width=7, fig.height=4.5}\n",
+    "if (!is.null(report$graphs$g_overview)) print(report$graphs$g_overview)\n",
+    "```\n",
+    "```{r, echo=FALSE}\n",
+    "if (!is.null(report$tables$overview)) knitr::kable(report$tables$overview, format='latex', booktabs=TRUE)\n",
+    "```\n"
+  )
+
   # ---------------- CONTEÚDO ----------------
+  content <- paste0(
+    bloco_overview,
+    bloco_achados,
 
-    content <- paste0(
-      bloco_achados,
+    section_table("t1", "Tabela 1. Caracterização dos Casos", report$text$t1),
+    section_table("t2", "Tabela 2. Indicadores por SGM", report$text$t2),
+    section_table("t3", "Tabela 3. Carga de Doença", report$text$t3),
+    section_table("t4", "Tabela 4. Causas de Mortalidade", report$text$t4),
 
-      section_table("t1", "Tabela 1. Caracterização dos Casos", report$text$t1),
-      section_table("t2", "Tabela 2. Indicadores por SGM", report$text$t2),
-      section_table("t3", "Tabela 3. Carga de Doença", report$text$t3),
-      section_table("t4", "Tabela 4. Causas de Mortalidade", report$text$t4),
-
-      section_plot("g1", "Gráfico 1. Óbitos no tempo", report$text$g1),
-      section_plot("g2", "Gráfico 2. Casos no tempo", report$text$g2),
-      section_plot("g3", "Gráfico 3. Letalidade por SGM", report$text$g3),
-      section_plot("g4", "Gráfico 4. Causas de morte", report$text$g4),
-      section_plot("g5", "Gráfico 5. Causas por SGM", report$text$g5)
-
-    )
+    section_plot("g1", "Gráfico 1. Óbitos no tempo", report$text$g1),
+    section_plot("g2", "Gráfico 2. Casos no tempo", report$text$g2),
+    section_plot("g3", "Gráfico 3. Letalidade por SGM", report$text$g3),
+    section_plot("g4", "Gráfico 4. Causas de morte", report$text$g4),
+    section_plot("g5", "Gráfico 5. Causas por SGM", report$text$g5)
+  )
 
   # ---------------- WRITE ----------------
-
-    rmd_file <- tempfile(fileext = ".Rmd")
+  rmd_file <- tempfile(fileext = ".Rmd")
 
   writeLines(c(yaml, capa, setup, content), rmd_file)
 
   dir.create(dirname(output_file), recursive = TRUE, showWarnings = FALSE)
 
   # ---------------- RENDER ----------------
-
-    rmarkdown::render(
-      input = rmd_file,
-      output_file = output_file,
-      envir = list2env(list(report = report), parent = globalenv()),
-      quiet = TRUE
-    )
+  rmarkdown::render(
+    input = rmd_file,
+    output_file = output_file,
+    envir = new.env(parent = globalenv()),
+    quiet = TRUE
+  )
 
   message("Boletim gerado em: ", normalizePath(output_file))
 

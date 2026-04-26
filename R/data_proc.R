@@ -10,59 +10,47 @@ data_proc <- function(link_obj,
   # 0. Validação
   # -------------------------
   if (!inherits(link_obj, "data_link_pipe")) {
-    stop("`data_proc()` requer um objeto do tipo 'data_link_pipe'. Execute `data_link()` primeiro.")
+    stop(
+      "`data_proc()` requer um objeto do tipo 'data_link_pipe'. Execute `data_link()` primeiro.",
+      call. = FALSE
+    )
   }
 
-  if (is.null(link_obj$data$linkage$matches)) {
-    stop("Nenhum match encontrado. Execute `data_link()` corretamente antes.")
-  }
-
-  # -------------------------
-  # 1. Inicializar estrutura
-  # -------------------------
-  proc <- list(
-    data = list(),
-    log  = list()
-  )
-
-  class(proc) <- "data_proc_pipe"
-
-  # -------------------------
-  # 2. Base inicial (sempre matches)
-  # -------------------------
-  base <- link_obj$data$linkage$matches
-
-  if (!is.data.frame(base) || nrow(base) == 0) {
-    stop("Objeto de matches inválido.")
-  }
-
-  proc$data$raw <- base
-
-  # -------------------------
-  # 3. Helper: pipeline interno
-  # -------------------------
-  pipe_add <- function(obj, step_name, step_fun) {
-    obj$data[[step_name]] <- step_fun(obj$data)
-    obj$log[[step_name]]  <- paste0("Executado em: ", Sys.time())
-    return(obj)
+  if (is.null(link_obj$data$linkage$matches) ||
+      !is.data.frame(link_obj$data$linkage$matches) ||
+      nrow(link_obj$data$linkage$matches) == 0) {
+    stop("Nenhum match encontrado. Execute `data_link()` corretamente antes.", call. = FALSE)
   }
 
   # -------------------------
-  # 4. Executar steps
+  # 1. Função auxiliar para executar steps
   # -------------------------
+  run_step <- function(pipe, step_name, step_fun) {
+    tryCatch(
+      step_fun(pipe),
+      error = function(e) {
+        stop(
+          sprintf("Falha no step '%s': %s", step_name, conditionMessage(e)),
+          call. = FALSE
+        )
+      }
+    )
+  }
 
-  proc <- pipe_add(proc, "id", step_proc_id())
+  # -------------------------
+  # 2. Iniciar pipeline
+  # -------------------------
+  pipe <- link_obj
 
-  proc <- pipe_add(proc, "sociodemografico", step_proc_sociodemo())
+  pipe <- proc_core()(pipe)
 
-  proc <- pipe_add(proc, "violencia", step_proc_violence())
-
-  proc <- pipe_add(proc, "agressao", step_proc_agressao())
-
-  proc <- pipe_add(proc, "obito", step_proc_obito())
-
-  proc <- pipe_add(
-    proc,
+  pipe <- run_step(pipe, "id", step_proc_id())
+  pipe <- run_step(pipe, "sociodemografico", step_proc_sociodemo())
+  pipe <- run_step(pipe, "violencia", step_proc_violence())
+  pipe <- run_step(pipe, "agressao", step_proc_agressao())
+  pipe <- run_step(pipe, "obito", step_proc_obito())
+  pipe <- run_step(
+    pipe,
     "cid",
     step_proc_cid(
       expectativa_vida = expectativa_vida,
@@ -71,19 +59,15 @@ data_proc <- function(link_obj,
   )
 
   # -------------------------
-  # 5. Base final consolidada
+  # 3. Consolidar saída
   # -------------------------
-  proc$data$final <- proc$data$cid
-
-  # -------------------------
-  # 6. Metadata
-  # -------------------------
-  proc$meta <- list(
-    n_inicial = nrow(proc$data$raw),
-    n_final   = nrow(proc$data$final),
-    expectativa_vida = expectativa_vida,
-    timestamp = Sys.time()
+  result <- list(
+    data = pipe$data$proc$data,
+    steps = pipe$data$proc$steps,
+    meta = pipe$proc_meta,
+    linkage = pipe$data$linkage
   )
 
-  return(proc)
+  class(result) <- "data_proc_pipe"
+  return(result)
 }

@@ -14,6 +14,8 @@ knitr::opts_chunk$set(
 ```
 
 # dataLGBT
+![R](https://img.shields.io/badge/language-R-blue)
+![status](https://img.shields.io/badge/status-development-yellow)
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/nnasc/dataLGBT/master/images/dataLGBT_logo.png" width="300">
@@ -152,6 +154,3 @@ OLIVEIRA, Natan Nascimento de. dataLGBT: Ferramentas para análise de mortalidad
 ## Dúvidas e sugestões
 
 Para reportar problemas ou sugerir melhorias, utilize a aba *Issues* no repositório do GitHub.
-
-![R](https://img.shields.io/badge/language-R-blue)
-![status](https://img.shields.io/badge/status-development-yellow)

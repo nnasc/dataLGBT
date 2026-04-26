@@ -3,5 +3,7 @@
 S3method(print,data_link_pipe)
 S3method(summary,data_link_pipe)
 export(data_link)
+export(data_proc)
+export(gen_report)
 importFrom(magrittr,"%>%")
 importFrom(utils,capture.output)

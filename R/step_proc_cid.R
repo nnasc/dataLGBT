@@ -10,8 +10,10 @@ step_proc_cid <- function(expectativa_vida = 76.6,
     # -------------------------
     # 1. Validação
     # -------------------------
-    if (is.null(pipe$data$proc$data)) {
-      stop("`proc_core()` deve ser executado antes de `step_proc_cid()`.")
+    if (!inherits(pipe, "data_link_pipe") ||
+        is.null(pipe$data$proc) ||
+        is.null(pipe$data$proc$data)) {
+      stop("`proc_core()` deve ser executado antes de `step_proc_cid()`.", call. = FALSE)
     }
 
     df <- pipe$data$proc$data
@@ -24,7 +26,7 @@ step_proc_cid <- function(expectativa_vida = 76.6,
     )
 
     if (is.na(causa_col)) {
-      stop("Variável de causa básica ausente: esperava `CAUSABAS` ou `Causa_Basica`.")
+      stop("Variável de causa básica ausente: esperava `CAUSABAS` ou `Causa_Basica`.", call. = FALSE)
     }
 
     required_vars <- c(
@@ -37,13 +39,13 @@ step_proc_cid <- function(expectativa_vida = 76.6,
     )
 
     missing_vars <- setdiff(required_vars, names(df))
-
     if (length(missing_vars) > 0) {
       stop(
         paste0(
           "Variáveis ausentes para `step_proc_cid()`: ",
           paste(missing_vars, collapse = ", ")
-        )
+        ),
+        call. = FALSE
       )
     }
 
@@ -65,7 +67,7 @@ step_proc_cid <- function(expectativa_vida = 76.6,
     )
 
     if (path_cid == "") {
-      stop("Arquivo de CID não encontrado em `inst/extdata/cid10_grupos.csv`.")
+      stop("Arquivo de CID não encontrado em `inst/extdata/cid10_grupos.csv`.", call. = FALSE)
     }
 
     cid <- readr::read_csv(path_cid, show_col_types = FALSE)
@@ -78,7 +80,8 @@ step_proc_cid <- function(expectativa_vida = 76.6,
         paste0(
           "O arquivo CID precisa conter as colunas: ",
           paste(required_cid_vars, collapse = ", ")
-        )
+        ),
+        call. = FALSE
       )
     }
 
@@ -110,6 +113,11 @@ step_proc_cid <- function(expectativa_vida = 76.6,
       stop("A junção com a tabela CID não funcionou corretamente.")
     }
 
+    df <- df %>%
+      dplyr::rename(
+        Grupo_CID = Group_Code
+      )
+
     # -------------------------
     # 5. Identificar óbito e classificar causa
     # -------------------------
@@ -119,11 +127,14 @@ step_proc_cid <- function(expectativa_vida = 76.6,
           is.na(Data_Obito) ~ "0 - Nao",
           TRUE ~ "1 - Sim"
         ),
+
+        Morte = Obito,
+
         Violencia_Relacionada = dplyr::case_when(
           Obito == "1 - Sim" &
-            Group_Code %in% c("245 (X85-Y09)", "246 (Y10-Y34)", "247 (Y35-Y36)") ~ "1 - Homicidio",
+            Grupo_CID %in% c("245 (X85-Y09)", "246 (Y10-Y34)", "247 (Y35-Y36)") ~ "1 - Homicidio",
           Obito == "1 - Sim" &
-            Group_Code == "244 (X60-X84)" ~ "2 - Suicidio",
+            Grupo_CID == "244 (X60-X84)" ~ "2 - Suicidio",
           Obito == "0 - Nao" ~ "0 - Nao",
           TRUE ~ "3 - Outras causas"
         )
@@ -141,7 +152,11 @@ step_proc_cid <- function(expectativa_vida = 76.6,
             expectativa_vida - as.numeric(Idade_Violencia),
           TRUE ~ NA_real_
         ),
-        Tempo_Sobrevivencia = ifelse(Tempo_Sobrevivencia < 0, 0, Tempo_Sobrevivencia)
+        Tempo_Sobrevivencia = dplyr::if_else(
+          is.na(Tempo_Sobrevivencia),
+          NA_real_,
+          pmax(Tempo_Sobrevivencia, 0)
+        )
       )
 
     # -------------------------
@@ -153,7 +168,7 @@ step_proc_cid <- function(expectativa_vida = 76.6,
           Obito == "1 - Sim" ~ expectativa_vida - as.numeric(Idade_Obito),
           TRUE ~ 0
         ),
-        APVP = ifelse(APVP < 0, 0, APVP)
+        APVP = pmax(APVP, 0)
       )
 
     # -------------------------
@@ -181,16 +196,8 @@ step_proc_cid <- function(expectativa_vida = 76.6,
     # 10. Atualizar pipeline
     # -------------------------
     pipe$data$proc$data <- df
-
-    pipe$data$proc$steps <- c(
-      pipe$data$proc$steps,
-      "cid"
-    )
-
-    pipe$proc_meta$steps <- c(
-      pipe$proc_meta$steps,
-      "cid"
-    )
+    pipe$data$proc$steps <- c(pipe$data$proc$steps, "cid")
+    pipe$proc_meta$steps <- c(pipe$proc_meta$steps, "cid")
 
     return(pipe)
   }

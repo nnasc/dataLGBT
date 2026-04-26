@@ -26,7 +26,14 @@ gen_report <- function(proc_data,
   )
 
   # -------------------------------------------------------
-  # 2. PIPELINE
+  # 2. GARANTIR CID (CRÍTICO)
+  # -------------------------------------------------------
+  if (!all(c("APVP", "AVCI", "Grupo_CID") %in% names(report$data$raw))) {
+    report$warnings <- c(report$warnings, "CID step não aplicado — algumas tabelas podem ser afetadas.")
+  }
+
+  # -------------------------------------------------------
+  # 3. PIPELINE
   # -------------------------------------------------------
   report <- .dataLGBT_run_report_step(report, "step_report_overview")
   report <- .dataLGBT_run_report_step(report, "step_report_table1")
@@ -34,16 +41,24 @@ gen_report <- function(proc_data,
   report <- .dataLGBT_run_report_step(report, "step_report_table3")
   report <- .dataLGBT_run_report_step(report, "step_report_table4")
 
-  if (graph.comp) {
+  # -------------------------------------------------------
+  # 4. GRÁFICOS (com proteção de time.comp)
+  # -------------------------------------------------------
+  if (graph.comp && time.comp != "none") {
+
     report <- .dataLGBT_run_report_step(report, "step_report_graph1")
     report <- .dataLGBT_run_report_step(report, "step_report_graph2")
     report <- .dataLGBT_run_report_step(report, "step_report_graph3")
+
+  }
+
+  if (graph.comp) {
     report <- .dataLGBT_run_report_step(report, "step_report_graph4")
     report <- .dataLGBT_run_report_step(report, "step_report_graph5")
   }
 
   # -------------------------------------------------------
-  # 3. EXPORT (OPCIONAL)
+  # 5. EXPORT (OPCIONAL)
   # -------------------------------------------------------
   if (export) {
 
@@ -67,7 +82,7 @@ gen_report <- function(proc_data,
   }
 
   # -------------------------------------------------------
-  # 4. RETURN
+  # 6. RETURN
   # -------------------------------------------------------
   return(report)
 }

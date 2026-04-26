@@ -9,8 +9,10 @@ step_proc_id <- function() {
     # -------------------------
     # 1. Validação
     # -------------------------
-    if (is.null(pipe$data$proc$data)) {
-      stop("`proc_core()` deve ser executado antes de `step_proc_id()`.")
+    if (!inherits(pipe, "data_link_pipe") ||
+        is.null(pipe$data$proc) ||
+        is.null(pipe$data$proc$data)) {
+      stop("`proc_core()` deve ser executado antes de `step_proc_id()`.", call. = FALSE)
     }
 
     df <- pipe$data$proc$data
@@ -23,13 +25,13 @@ step_proc_id <- function() {
 
       # Número da notificação de violência (SINAN)
       VReport_N = dplyr::coalesce(
-        .data$NU_NOTIFIC.x,
+        .data$NU_NOTIFIC,
         .data$NU_NOTIFIC
       ),
 
       # Número da Declaração de Óbito (SIM)
       DReport_N = dplyr::coalesce(
-        .data$NUMERODO.y,
+        .data$NUMERODO,
         .data$NUMERODO
       )
     )
@@ -38,21 +40,14 @@ step_proc_id <- function() {
     # 3. Remover identificadores sensíveis
     # -------------------------
     remove_vars <- c(
-      # nomes
-      "NOME", "NOME.x", "NOME.y",
+      "NOME", "NOME", "NOME",
       "NM_PACIENT", "NM_MAE_PAC",
-      "NOMEMAE", "NOMEMAE.x", "NOMEMAE.y",
-
-      # datas diretas identificáveis (mantemos idade depois)
-      "DTNASC", "DTNASC.x", "DTNASC.y",
+      "NOMEMAE", "NOMEMAE", "NOMEMAE",
+      "DTNASC", "DTNASC", "DTNASC",
       "DT_NASC",
-
-      # IDs internos / linkage
       ".id_sinan", ".id_sim", ".id_internal",
       ".block",
       "dedupe.ids",
-
-      # chaves técnicas
       "KEY", "Unique_Key"
     )
 
@@ -65,16 +60,8 @@ step_proc_id <- function() {
     # 4. Atualizar pipe
     # -------------------------
     pipe$data$proc$data <- df
-
-    pipe$data$proc$steps <- c(
-      pipe$data$proc$steps,
-      "id"
-    )
-
-    pipe$proc_meta$steps <- c(
-      pipe$proc_meta$steps,
-      "id"
-    )
+    pipe$data$proc$steps <- c(pipe$data$proc$steps, "id")
+    pipe$proc_meta$steps <- c(pipe$proc_meta$steps, "id")
 
     return(pipe)
   }

@@ -1,7 +1,3 @@
-# =========================
-# STEP: REPORT OVERVIEW
-# =========================
-
 step_report_overview <- function() {
 
   function(report) {
@@ -16,20 +12,34 @@ step_report_overview <- function() {
       stop("`report$data$raw` deve ser um data.frame.")
     }
 
+    if (nrow(df) == 0) {
+
+      report$tables$overview <- NULL
+      report$text$overview <- "Base de dados vazia após filtros aplicados."
+      report$graphs$g_overview <- NULL
+
+      report$steps <- c(report$steps, "overview")
+
+      return(report)
+    }
+
     idioma <- report$meta$idioma %||% "pt"
     var.by <- report$meta$var.by %||% NULL
 
-    # -------------------------
+    # -------------------------------------------------------
     # 1. Indicadores gerais
-    # -------------------------
+    # -------------------------------------------------------
     n_registros <- nrow(df)
-    n_variaveis  <- ncol(df)
-    n_completos  <- sum(stats::complete.cases(df))
-    n_incompletos <- sum(!stats::complete.cases(df))
-    pct_completo <- round(mean(stats::complete.cases(df)) * 100, 2)
+    n_variaveis <- ncol(df)
 
-    n_obitos <- if ("Data_Obito" %in% names(df)) {
-      sum(!is.na(df$Data_Obito))
+    completos <- stats::complete.cases(df)
+
+    n_completos <- sum(completos)
+    n_incompletos <- n_registros - n_completos
+    pct_completo <- round(mean(completos) * 100, 2)
+
+    n_obitos <- if ("Morte" %in% names(df)) {
+      sum(df$Morte == "1 - Sim", na.rm = TRUE)
     } else {
       NA_integer_
     }
@@ -62,32 +72,28 @@ step_report_overview <- function() {
       stringsAsFactors = FALSE
     )
 
-    # -------------------------
-    # 2. Texto breve de abertura
-    # -------------------------
+    # -------------------------------------------------------
+    # 2. Texto de abertura
+    # -------------------------------------------------------
     if (idioma == "pt") {
       texto_overview <- paste0(
         "Este relatório sintetiza ", n_registros, " registros e ",
-        n_variaveis, " variáveis processadas pelo pacote dataLGBT. ",
+        n_variaveis, " variáveis após processamento e aplicação de filtros analíticos. ",
         "A base apresenta ", pct_completo, "% de completude global. ",
-        "A seguir são apresentados os principais achados sobre violência, óbito, ",
-        "carga de doença e distribuição temporal dos eventos."
+        "São analisados eventos de violência, óbitos e carga de doença nas seções a seguir."
       )
     } else {
       texto_overview <- paste0(
         "This report summarizes ", n_registros, " records and ",
-        n_variaveis, " variables processed by the dataLGBT package. ",
+        n_variaveis, " variables after processing and analytical filtering. ",
         "The dataset has ", pct_completo, "% overall completeness. ",
-        "The sections below present the main findings on violence, death, ",
-        "burden of disease, and temporal distribution of events."
+        "Violence, deaths, and burden of disease are analyzed in the sections below."
       )
     }
 
-    # -------------------------
-    # 3. Gráfico de abertura
-    #    Se var.by existir, mostra distribuição da variável escolhida
-    #    Caso contrário, mostra completude por variável (top 15)
-    # -------------------------
+    # -------------------------------------------------------
+    # 3. Gráfico inicial
+    # -------------------------------------------------------
     grafico_overview <- NULL
 
     if (!is.null(var.by) && var.by %in% names(df)) {
@@ -141,9 +147,9 @@ step_report_overview <- function() {
         ggplot2::theme_minimal()
     }
 
-    # -------------------------
-    # 4. Salvar no objeto
-    # -------------------------
+    # -------------------------------------------------------
+    # 4. Salvar
+    # -------------------------------------------------------
     report$tables$overview <- tabela_overview
     report$text$overview <- texto_overview
     report$graphs$g_overview <- grafico_overview

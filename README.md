@@ -3,6 +3,9 @@
 
 # dataLGBT
 
+![R](https://img.shields.io/badge/language-R-blue)
+![status](https://img.shields.io/badge/status-development-yellow)
+
 <p align="center">
 
 <img src="https://raw.githubusercontent.com/nnasc/dataLGBT/master/images/dataLGBT_logo.png" width="300">
@@ -162,6 +165,3 @@ mortalidade de pessoas LGBT no Brasil. \[R package\].
 
 Para reportar problemas ou sugerir melhorias, utilize a aba *Issues* no
 repositório do GitHub.
-
-![R](https://img.shields.io/badge/language-R-blue)
-![status](https://img.shields.io/badge/status-development-yellow)

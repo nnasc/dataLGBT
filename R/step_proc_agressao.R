@@ -9,8 +9,10 @@ step_proc_agressao <- function() {
     # -------------------------
     # 1. Validacao
     # -------------------------
-    if (is.null(pipe$data$proc$data)) {
-      stop("`proc_core()` deve ser executado antes de `step_proc_agressao()`.")
+    if (!inherits(pipe, "data_link_pipe") ||
+        is.null(pipe$data$proc) ||
+        is.null(pipe$data$proc$data)) {
+      stop("`proc_core()` deve ser executado antes de `step_proc_agressao()`.", call. = FALSE)
     }
 
     df <- pipe$data$proc$data
@@ -26,17 +28,21 @@ step_proc_agressao <- function() {
     # -------------------------
     # 3. Helpers locais
     # -------------------------
+    to_int <- function(x) {
+      suppressWarnings(as.integer(as.character(x)))
+    }
+
     binario_sim_nao <- function(x) {
       dplyr::case_when(
-        x == 1 ~ "1 - Sim",
+        to_int(x) == 1 ~ "1 - Sim",
         TRUE ~ "0 - Nao"
       )
     }
 
     cat_na <- function(x) {
       dplyr::case_when(
-        x == 1 ~ "1 - Sim",
-        x == 2 ~ "0 - Nao",
+        to_int(x) == 1 ~ "1 - Sim",
+        to_int(x) == 2 ~ "0 - Nao",
         TRUE ~ NA_character_
       )
     }
@@ -58,7 +64,7 @@ step_proc_agressao <- function() {
       Meio_Outro = binario_sim_nao(AG_OUTROS),
 
       Meio_Outro_Especificar = dplyr::if_else(
-        AG_OUTROS == 1,
+        to_int(AG_OUTROS) == 1,
         as.character(AG_ESPEC),
         NA_character_
       )
@@ -89,7 +95,7 @@ step_proc_agressao <- function() {
       Agressor_Outro = binario_sim_nao(REL_OUTROS),
 
       Agressor_Outro_Especificar = dplyr::if_else(
-        REL_OUTROS == 1,
+        to_int(REL_OUTROS) == 1,
         as.character(REL_ESPEC),
         NA_character_
       )
@@ -102,24 +108,24 @@ step_proc_agressao <- function() {
       df,
 
       Numero_Agressores = dplyr::case_when(
-        NUM_ENVOLV == 1 ~ "1 - Apenas um agressor",
-        AUTOR_SEXO == 2 ~ "2 - Dois ou mais agressores",
+        to_int(NUM_ENVOLV) == 1 ~ "1 - Apenas um agressor",
+        to_int(AUTOR_SEXO) == 2 ~ "2 - Dois ou mais agressores",
         TRUE ~ NA_character_
       ),
 
       Ciclo_Vida_Agressor = dplyr::case_when(
-        CICL_VID_AUTOR == 1 ~ "1 - Crianca",
-        CICL_VID_AUTOR == 2 ~ "2 - Adolescente",
-        CICL_VID_AUTOR == 3 ~ "3 - Jovem",
-        CICL_VID_AUTOR == 4 ~ "4 - Adulto",
-        CICL_VID_AUTOR == 5 ~ "5 - Idoso",
+        to_int(CICL_VID) == 1 ~ "1 - Crianca",
+        to_int(CICL_VID) == 2 ~ "2 - Adolescente",
+        to_int(CICL_VID) == 3 ~ "3 - Jovem",
+        to_int(CICL_VID) == 4 ~ "4 - Adulto",
+        to_int(CICL_VID) == 5 ~ "5 - Idoso",
         TRUE ~ NA_character_
       ),
 
       Sexo_Agressor = dplyr::case_when(
-        AUTOR_SEXO == 1 ~ "1 - Masculino",
-        AUTOR_SEXO == 2 ~ "2 - Feminino",
-        AUTOR_SEXO == 3 ~ "3 - Ambos",
+        to_int(AUTOR_SEXO) == 1 ~ "1 - Masculino",
+        to_int(AUTOR_SEXO) == 2 ~ "2 - Feminino",
+        to_int(AUTOR_SEXO) == 3 ~ "3 - Ambos",
         TRUE ~ NA_character_
       ),
 
@@ -179,28 +185,16 @@ step_proc_agressao <- function() {
 
     # -------------------------
     # 8. Remover proprio agressor como categoria
-    #    (ja contemplado em Lesao_Autoprovocada)
     # -------------------------
-    remove_vars <- c(
-      "Agressor_Propria_Pessoa"
-    )
-
+    remove_vars <- c("Agressor_Propria_Pessoa")
     df <- dplyr::select(df, -dplyr::any_of(remove_vars))
 
     # -------------------------
     # 9. Atualizar pipeline
     # -------------------------
     pipe$data$proc$data <- df
-
-    pipe$data$proc$steps <- c(
-      pipe$data$proc$steps,
-      "agressao"
-    )
-
-    pipe$proc_meta$steps <- c(
-      pipe$proc_meta$steps,
-      "agressao"
-    )
+    pipe$data$proc$steps <- c(pipe$data$proc$steps, "agressao")
+    pipe$proc_meta$steps <- c(pipe$proc_meta$steps, "agressao")
 
     return(pipe)
   }

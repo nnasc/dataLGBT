@@ -7,10 +7,12 @@ step_proc_obito <- function() {
   function(pipe) {
 
     # -------------------------
-    # 1. Validacao
+    # 1. Validação
     # -------------------------
-    if (is.null(pipe$data$proc$data)) {
-      stop("`proc_core()` deve ser executado antes de `step_proc_obito()`.")
+    if (!inherits(pipe, "data_link_pipe") ||
+        is.null(pipe$data$proc) ||
+        is.null(pipe$data$proc$data)) {
+      stop("`proc_core()` deve ser executado antes de `step_proc_obito()`.", call. = FALSE)
     }
 
     df <- pipe$data$proc$data
@@ -23,7 +25,8 @@ step_proc_obito <- function() {
         paste0(
           "Variaveis ausentes para `step_proc_obito()`: ",
           paste(missing_vars, collapse = ", ")
-        )
+        ),
+        call. = FALSE
       )
     }
 
@@ -43,17 +46,14 @@ step_proc_obito <- function() {
     }
 
     parse_date_br <- function(x) {
-      if (inherits(x, "Date")) {
-        return(x)
-      }
 
-      if (is.factor(x)) {
-        x <- as.character(x)
-      }
+      if (inherits(x, "Date")) return(x)
 
-      x <- trimws(as.character(x))
+      x <- as.character(x)
+      x <- trimws(x)
       x[x == ""] <- NA_character_
 
+      # Corrige datas com 7 dígitos (ex: 1012020 → 01012020)
       idx7 <- !is.na(x) & nchar(x) == 7
       x[idx7] <- paste0("0", x[idx7])
 
@@ -75,7 +75,7 @@ step_proc_obito <- function() {
     }
 
     # -------------------------
-    # 4. Variaveis do obito
+    # 4. Variáveis do óbito
     # -------------------------
     df <- dplyr::mutate(
       df,
@@ -150,14 +150,14 @@ step_proc_obito <- function() {
       Causa_Basica = as.character(CAUSABAS),
 
       CID10_3 = dplyr::if_else(
-        !is.na(as.character(CAUSABAS)) & nchar(as.character(CAUSABAS)) >= 3,
-        substr(as.character(CAUSABAS), 1, 3),
+        !is.na(CAUSABAS) & nchar(CAUSABAS) >= 3,
+        substr(CAUSABAS, 1, 3),
         NA_character_
       )
     )
 
     # -------------------------
-    # 5. Remover campos brutos do obito
+    # 5. Remover campos brutos
     # -------------------------
     remove_vars <- c(
       "NUMERODO", "TIPOBITO", "DTOBITO", "HORAOBITO", "LOCOCOR",
@@ -172,16 +172,8 @@ step_proc_obito <- function() {
     # 6. Atualizar pipeline
     # -------------------------
     pipe$data$proc$data <- df
-
-    pipe$data$proc$steps <- c(
-      pipe$data$proc$steps,
-      "obito"
-    )
-
-    pipe$proc_meta$steps <- c(
-      pipe$proc_meta$steps,
-      "obito"
-    )
+    pipe$data$proc$steps <- c(pipe$data$proc$steps, "obito")
+    pipe$proc_meta$steps <- c(pipe$proc_meta$steps, "obito")
 
     return(pipe)
   }
